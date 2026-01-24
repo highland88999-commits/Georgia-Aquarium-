@@ -19,13 +19,14 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* Fullscreen Video Engine */
+        /* Video Engine with Mirror Support */
         .video-engine {
             position: fixed;
             inset: 0;
             width: 100vw; height: 100vh;
             z-index: 1;
             overflow: hidden;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         #yt-iframe {
@@ -38,7 +39,41 @@
             pointer-events: none;
         }
 
-        /* Organic Navigation Arrows - Independent of Console */
+        /* Mirror Toggle Button */
+        .mirror-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 250;
+            width: 45px;
+            height: 45px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+            transition: 0.3s;
+            opacity: 0.6;
+        }
+        .mirror-btn:hover {
+            opacity: 1;
+            border-color: var(--glow);
+            box-shadow: 0 0 15px var(--glow);
+        }
+        .mirror-btn svg {
+            width: 20px;
+            fill: var(--glow);
+        }
+
+        /* Mirror State */
+        .mirrored {
+            transform: scaleX(-1);
+        }
+
+        /* Nav Arrows */
         .nav-arrow {
             position: fixed;
             top: 50%;
@@ -54,27 +89,15 @@
             font-weight: 100;
             transition: all 0.4s ease;
             user-select: none;
-            opacity: 0.3; /* Organic, ghosted look */
+            opacity: 0.3;
             text-shadow: 0 0 10px var(--glow);
         }
-
-        .nav-arrow:hover {
-            opacity: 1;
-            transform: translateY(-50%) scale(1.1);
-            text-shadow: 0 0 25px var(--glow);
-        }
-
-        /* The Click Effect (Visual Only) */
-        .nav-arrow:active {
-            transform: translateY(-50%) scale(0.9);
-            filter: brightness(1.5);
-            transition: 0.05s;
-        }
-
+        .nav-arrow:hover { opacity: 1; transform: translateY(-50%) scale(1.1); }
+        .nav-arrow:active { transform: translateY(-50%) scale(0.9); transition: 0.05s; }
         .arrow-L { left: 10px; }
         .arrow-R { right: 10px; }
 
-        /* Central Console UI */
+        /* UI Overlay */
         #nexus-overlay {
             position: fixed;
             inset: 0;
@@ -94,14 +117,14 @@
             background: var(--ui-bg);
             border: 2.5px solid var(--glow);
             border-radius: 30px;
-            box-shadow: 0 0 50px rgba(0, 242, 255, 0.2);
             text-align: center;
             color: #fff;
             pointer-events: auto;
         }
 
-        .btn-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
         .btn {
+            display: block;
+            margin-top: 15px;
             padding: 12px;
             text-decoration: none;
             border-radius: 50px;
@@ -109,10 +132,10 @@
             font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 2px;
-            transition: 0.3s;
             border: 1px solid var(--glow);
             color: var(--glow);
             background: rgba(0, 242, 255, 0.05);
+            transition: 0.3s;
         }
         .btn:hover { background: var(--glow); color: #000; }
 
@@ -124,16 +147,6 @@
             color: rgba(255,255,255,0.4);
             z-index: 150;
             transition: 0.5s;
-            text-transform: uppercase;
-        }
-
-        /* Animation for current Node Update */
-        .glitch-flash {
-            animation: flash 0.3s ease-out;
-        }
-        @keyframes flash {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; }
         }
 
         .hidden { opacity: 0 !important; visibility: hidden !important; }
@@ -141,8 +154,14 @@
 </head>
 <body onclick="toggleUI()">
 
-    <div class="video-engine">
+    <div id="engine" class="video-engine">
         <iframe id="yt-iframe" src="" allow="autoplay; fullscreen"></iframe>
+    </div>
+
+    <div class="mirror-btn" onclick="toggleMirror(event)" title="Mirror Perspective">
+        <svg viewBox="0 0 24 24">
+            <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>
+        </svg>
     </div>
 
     <div class="nav-arrow arrow-L" onclick="cycleNode(-1)">‹</div>
@@ -152,16 +171,12 @@
         <div class="holo-frame" onclick="event.stopPropagation()">
             <h1 id="node-title" style="margin:0; font-size: 1.1rem; letter-spacing: 4px; color: var(--glow);">GEORGIA AQUARIUM</h1>
             <p id="node-status" style="font-size: 0.6rem; opacity: 0.6; margin-top: 10px;">ACTIVE FEED: NODE_01</p>
-            
-            <div class="btn-stack">
-                <a href="mailto:stakeme10000@gmail.com" class="btn">Request Console</a>
-                <a href="https://architect-artemis.vercel.app/" target="_blank" class="btn" style="border-color:var(--gold); color:var(--gold);">Visit Olympus</a>
-            </div>
+            <a href="mailto:stakeme10000@gmail.com" class="btn">Request Console</a>
+            <a href="https://architect-artemis.vercel.app/" target="_blank" class="btn" style="border-color:var(--gold); color:var(--gold);">Visit Olympus</a>
         </div>
     </div>
 
     <div class="hud" style="left: 30px;" id="hud-L">NODE: 01/23</div>
-    <div class="hud" style="right: 30px;">SIGNAL: ENCRYPTED</div>
 
     <script>
         const nodes = [
@@ -192,6 +207,7 @@
 
         let currentIndex = 0;
         const iframe = document.getElementById('yt-iframe');
+        const engine = document.getElementById('engine');
         const overlay = document.getElementById('nexus-overlay');
         const huds = document.querySelectorAll('.hud');
 
@@ -201,21 +217,20 @@
             document.getElementById('node-title').innerText = node.name;
             document.getElementById('node-status').innerText = `ACTIVE FEED: NODE_${String(currentIndex + 1).padStart(2, '0')}`;
             document.getElementById('hud-L').innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/23`;
-            
-            // Subtle visual feedback for the swap
-            iframe.classList.remove('glitch-flash');
-            void iframe.offsetWidth; // trigger reflow
-            iframe.classList.add('glitch-flash');
+        }
+
+        function toggleMirror(e) {
+            e.stopPropagation();
+            engine.classList.toggle('mirrored');
         }
 
         function cycleNode(direction) {
-            event.stopPropagation(); // Prevents the overlay from toggling when clicking arrows
+            event.stopPropagation();
             currentIndex = (currentIndex + direction + nodes.length) % nodes.length;
             updateNode();
         }
 
         function toggleUI() {
-            const isHidden = overlay.classList.contains('hidden');
             overlay.classList.toggle('hidden');
             huds.forEach(h => h.classList.toggle('hidden'));
         }
