@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Georgia Aquarium • Immersive</title>
+    <title>Georgia Aquarium • Immersive Node</title>
     <style>
         :root {
-            --glow: #00c3ff;
-            --gold: #ffd700;
+            --glow: #00f2ff;
+            --gold: #d4af37;
         }
 
         body, html {
@@ -20,33 +20,32 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* The Base Layers (Full Screen, No Gaps) */
-        .video-layer {
-            position: absolute;
+        /* The Fullscreen Container */
+        .immersive-container {
+            position: fixed;
             inset: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             z-index: 1;
+            overflow: hidden;
         }
 
-        #bg-render, #yt-iframe {
+        /* The Video: Forces 16:9 to cover any screen ratio */
+        #yt-iframe {
             width: 100vw;
-            height: 56.25vw; /* 16:9 Aspect */
+            height: 56.25vw; /* 16:9 ratio */
             min-height: 100vh;
-            min-width: 177.77vh;
+            min-width: 177.77vh; /* 16:9 ratio */
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            object-fit: cover;
             border: none;
+            pointer-events: none; /* Allows clicks to pass to the body */
         }
 
-        /* YouTube sits above the Blob render */
-        #yt-iframe { z-index: 2; pointer-events: none; }
-
-        /* UI Layer */
-        #ui-wrapper {
+        /* The Interaction Layer */
+        #nexus-overlay {
             position: fixed;
             inset: 0;
             z-index: 10;
@@ -54,120 +53,103 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(8px);
-            transition: opacity 0.6s ease, visibility 0.6s;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
             cursor: pointer;
         }
 
         .holo-frame {
-            width: min(320px, 85vw);
+            width: min(340px, 85vw);
             padding: 40px;
-            background: rgba(0, 10, 20, 0.8);
-            border: 1.5px solid var(--glow);
-            border-radius: 24px;
-            box-shadow: 0 0 30px var(--glow), inset 0 0 15px var(--glow);
+            background: rgba(0, 15, 30, 0.85);
+            border: 2px solid var(--glow);
+            border-radius: 30px;
+            box-shadow: 0 0 40px rgba(0, 242, 255, 0.4), inset 0 0 20px rgba(0, 242, 255, 0.2);
             text-align: center;
-            color: white;
-            pointer-events: auto; /* Buttons still clickable */
+            color: #fff;
+            pointer-events: auto; /* Buttons are clickable */
         }
 
         .btn-stack { display: flex; flex-direction: column; gap: 15px; margin-top: 25px; }
         .btn {
-            padding: 12px;
+            padding: 14px;
             text-decoration: none;
-            border-radius: 10px;
+            border-radius: 50px;
             font-weight: bold;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.3s;
+            letter-spacing: 2px;
+            transition: 0.4s;
             border: 1px solid var(--glow);
-            color: white;
-            background: rgba(0, 195, 255, 0.1);
+            color: var(--glow);
+            background: rgba(0, 242, 255, 0.05);
         }
-        .btn:hover { background: var(--glow); color: #000; box-shadow: 0 0 15px var(--glow); }
+        .btn:hover { background: var(--glow); color: #000; box-shadow: 0 0 20px var(--glow); }
 
-        /* HUD Elements */
-        .hud {
+        .btn.gold { border-color: var(--gold); color: var(--gold); }
+        .btn.gold:hover { background: var(--gold); color: #000; box-shadow: 0 0 20px var(--gold); }
+
+        /* HUD Details */
+        .hud-text {
             position: fixed;
-            z-index: 15;
-            transition: opacity 0.5s;
-            pointer-events: auto;
-        }
-        .bottom-L { bottom: 30px; left: 30px; }
-        .bottom-R { bottom: 30px; right: 30px; }
-        
-        .nav-link {
-            text-decoration: none;
-            color: var(--gold);
-            font-size: 0.7rem;
-            border: 1px solid var(--gold);
-            padding: 8px 15px;
-            border-radius: 20px;
-            background: rgba(0,0,0,0.5);
+            bottom: 30px;
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            z-index: 11;
+            transition: 0.5s;
         }
 
-        /* Utility Classes */
         .hidden { opacity: 0; visibility: hidden; }
     </style>
 </head>
-<body onclick="toggleNexusUI()">
+<body onclick="toggleNexus()">
 
-    <div class="video-layer">
-        <video id="bg-render" autoplay muted loop playsinline>
-            <source src="https://w6gqoaajkeprilw9.public.blob.vercel-storage.com/nexus_render%20%289%29.webm" type="video/webm">
-        </video>
-    </div>
-
-    <div class="video-layer">
+    <div class="immersive-container">
         <iframe id="yt-iframe" 
-            src="https://www.youtube.com/embed/DHUnz4dyb54?autoplay=1&mute=1&controls=0&loop=1&playlist=DHUnz4dyb54&rel=0&iv_load_policy=3&modestbranding=1" 
+            src="https://www.youtube.com/embed/DHUnz4dyb54?autoplay=1&mute=1&controls=0&loop=1&playlist=DHUnz4dyb54&rel=0&modestbranding=1&enablejsapi=1" 
             allow="autoplay; fullscreen">
         </iframe>
     </div>
 
-    <div id="ui-wrapper">
+    <div id="nexus-overlay">
         <div class="holo-frame" onclick="event.stopPropagation()">
-            <h2 style="margin:0; letter-spacing: 3px; text-shadow: 0 0 10px var(--glow);">AQUARIUM</h2>
-            <p style="font-size: 0.7rem; opacity: 0.6; margin-top: 5px;">NEXUS NODE • REEF_FEED</p>
+            <h1 style="margin:0; font-size: 1.5rem; letter-spacing: 5px; text-shadow: 0 0 15px var(--glow);">AQUARIUM</h1>
+            <div style="height: 1px; background: linear-gradient(90deg, transparent, var(--glow), transparent); margin: 15px 0;"></div>
+            <p style="font-size: 0.7rem; opacity: 0.7;">GEORGIA NODE • LIVE STREAM ACTIVE</p>
             
             <div class="btn-stack">
                 <a href="mailto:stakeme10000@gmail.com" class="btn">Request Console</a>
-                <a href="https://www.georgiaaquarium.org" target="_blank" class="btn" style="border-color: var(--gold); color: var(--gold);">Official Site</a>
+                <a href="https://www.georgiaaquarium.org" target="_blank" class="btn gold">Access Mainframe</a>
             </div>
-            <p style="font-size: 0.6rem; margin-top: 20px; opacity: 0.5;">TAP ANYWHERE TO HIDE UI</p>
+            
+            <p style="margin-top: 25px; font-size: 0.6rem; opacity: 0.4;">[ TAP VOID TO IMMERSE ]</p>
         </div>
     </div>
 
-    <div class="hud bottom-L">
-        <a href="https://architect-artemis.vercel.app/" target="_blank" class="nav-link">RETURN TO OLYMPUS</a>
-    </div>
-    <div class="hud bottom-R">
-        <a href="https://explore.org" target="_blank" class="nav-link" style="color: var(--glow); border-color: var(--glow);">EXPLORE.ORG</a>
-    </div>
+    <div class="hud-text" style="left: 30px;">STATION: GEORGIA_REEL_09</div>
+    <div class="hud-text" style="right: 30px;">STATUS: ENCRYPTED</div>
 
     <script>
-        const ui = document.getElementById('ui-wrapper');
-        const huds = document.querySelectorAll('.hud');
+        const overlay = document.getElementById('nexus-overlay');
+        const huds = document.querySelectorAll('.hud-text');
 
-        function toggleNexusUI() {
-            const isHidden = ui.classList.contains('hidden');
-            
+        function toggleNexus() {
+            const isHidden = overlay.classList.contains('hidden');
             if (isHidden) {
-                ui.classList.remove('hidden');
-                huds.forEach(h => h.classList.remove('hidden'));
+                overlay.classList.remove('hidden');
+                huds.forEach(h => h.style.opacity = "1");
             } else {
-                ui.classList.add('hidden');
-                huds.forEach(h => h.classList.add('hidden'));
+                overlay.classList.add('hidden');
+                huds.forEach(h => h.style.opacity = "0");
             }
         }
 
-        // Prevent UI from closing when clicking links or buttons
-        document.querySelectorAll('a, .holo-frame').forEach(element => {
-            element.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
+        // Ensure clicking inside the frame doesn't toggle the UI
+        document.querySelector('.holo-frame').addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     </script>
 </body>
