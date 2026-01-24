@@ -26,52 +26,60 @@
             width: 100vw; height: 100vh;
             z-index: 1;
             overflow: hidden;
-            background: #000;
         }
 
         #yt-iframe {
-            width: 100vw;
-            height: 56.25vw;
-            min-height: 100vh;
-            min-width: 177.77vh;
+            width: 100vw; height: 56.25vw;
+            min-height: 100vh; min-width: 177.77vh;
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             border: none;
-            pointer-events: none; /* Passes clicks to body for toggle */
+            pointer-events: none;
         }
 
-        /* Navigation Arrows */
+        /* Organic Navigation Arrows - Independent of Console */
         .nav-arrow {
             position: fixed;
             top: 50%;
             transform: translateY(-50%);
-            z-index: 100;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--glow);
+            z-index: 200;
             color: var(--glow);
-            width: 60px; height: 60px;
-            border-radius: 50%;
+            width: 80px; height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 1.5rem;
-            transition: 0.3s;
-            backdrop-filter: blur(5px);
+            font-size: 3rem;
+            font-weight: 100;
+            transition: all 0.4s ease;
             user-select: none;
+            opacity: 0.3; /* Organic, ghosted look */
+            text-shadow: 0 0 10px var(--glow);
         }
-        .nav-arrow:hover { background: var(--glow); color: #000; box-shadow: 0 0 20px var(--glow); }
-        .arrow-L { left: 20px; }
-        .arrow-R { right: 20px; }
 
-        /* UI Central Console */
+        .nav-arrow:hover {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+            text-shadow: 0 0 25px var(--glow);
+        }
+
+        /* The Click Effect (Visual Only) */
+        .nav-arrow:active {
+            transform: translateY(-50%) scale(0.9);
+            filter: brightness(1.5);
+            transition: 0.05s;
+        }
+
+        .arrow-L { left: 10px; }
+        .arrow-R { right: 10px; }
+
+        /* Central Console UI */
         #nexus-overlay {
             position: fixed;
             inset: 0;
-            z-index: 50;
+            z-index: 100;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             background: rgba(0, 0, 0, 0.4);
@@ -81,12 +89,12 @@
         }
 
         .holo-frame {
-            width: min(360px, 85vw);
+            width: min(380px, 85vw);
             padding: 40px;
             background: var(--ui-bg);
-            border: 2px solid var(--glow);
+            border: 2.5px solid var(--glow);
             border-radius: 30px;
-            box-shadow: 0 0 40px rgba(0, 242, 255, 0.3);
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.2);
             text-align: center;
             color: #fff;
             pointer-events: auto;
@@ -108,19 +116,27 @@
         }
         .btn:hover { background: var(--glow); color: #000; }
 
-        /* HUD Details */
         .hud {
             position: fixed;
             bottom: 30px;
             font-size: 0.6rem;
-            letter-spacing: 2px;
-            color: rgba(255,255,255,0.5);
-            z-index: 60;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.4);
+            z-index: 150;
             transition: 0.5s;
             text-transform: uppercase;
         }
 
-        .hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        /* Animation for current Node Update */
+        .glitch-flash {
+            animation: flash 0.3s ease-out;
+        }
+        @keyframes flash {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .hidden { opacity: 0 !important; visibility: hidden !important; }
     </style>
 </head>
 <body onclick="toggleUI()">
@@ -129,69 +145,81 @@
         <iframe id="yt-iframe" src="" allow="autoplay; fullscreen"></iframe>
     </div>
 
-    <div class="nav-arrow arrow-L ui-element" onclick="cycleNode(-1)">‹</div>
-    <div class="nav-arrow arrow-R ui-element" onclick="cycleNode(1)">›</div>
+    <div class="nav-arrow arrow-L" onclick="cycleNode(-1)">‹</div>
+    <div class="nav-arrow arrow-R" onclick="cycleNode(1)">›</div>
 
-    <div id="nexus-overlay" class="ui-element">
+    <div id="nexus-overlay">
         <div class="holo-frame" onclick="event.stopPropagation()">
-            <h1 id="node-title" style="margin:0; font-size: 1.2rem; letter-spacing: 4px; color: var(--glow);">GEORGIA AQUARIUM</h1>
+            <h1 id="node-title" style="margin:0; font-size: 1.1rem; letter-spacing: 4px; color: var(--glow);">GEORGIA AQUARIUM</h1>
             <p id="node-status" style="font-size: 0.6rem; opacity: 0.6; margin-top: 10px;">ACTIVE FEED: NODE_01</p>
             
             <div class="btn-stack">
                 <a href="mailto:stakeme10000@gmail.com" class="btn">Request Console</a>
                 <a href="https://architect-artemis.vercel.app/" target="_blank" class="btn" style="border-color:var(--gold); color:var(--gold);">Visit Olympus</a>
             </div>
-            <p style="margin-top:20px; font-size: 0.5rem; opacity: 0.4;">[ CLICK ARROWS TO CYCLE • CLICK VOID TO HIDE ]</p>
         </div>
     </div>
 
-    <div class="hud ui-element" style="left: 30px;" id="hud-L">NODE: 01/13</div>
-    <div class="hud ui-element" style="right: 30px;">SIGNAL: ENCRYPTED</div>
+    <div class="hud" style="left: 30px;" id="hud-L">NODE: 01/23</div>
+    <div class="hud" style="right: 30px;">SIGNAL: ENCRYPTED</div>
 
     <script>
         const nodes = [
             { id: "DHUnz4dyb54", name: "GEORGIA AQUARIUM" },
-            { id: "XsOU8JnEpNM", name: "OL DONYO LODGE - KENYA" },
-            { id: "HfgIFGbdGJ0", name: "EARTH TV - WORLD VIEW" },
-            { id: "5e4lsEe4Vew", name: "WOLF CENTER - NORTH" },
-            { id: "3n-5EA9augs", name: "TEXAS WILDLIFE FEED" },
-            { id: "EvsLqQS_80E", name: "CAT TV - BIRD WATCH" },
+            { id: "XsOU8JnEpNM", name: "OL DONYO LODGE" },
+            { id: "5e4lsEe4Vew", name: "WOLF CENTER NORTH" },
+            { id: "3n-5EA9augs", name: "TEXAS WILDLIFE" },
             { id: "dIChLG4_WNs", name: "NKORHO BUSH LODGE" },
-            { id: "fO9e9jnhYK8", name: "ISS - 4K EARTH VIEW" },
-            { id: "0FBiyFpV__g", name: "SPACE STATION LIVE" },
-            { id: "ItdXaWUVF48", name: "ROSIE'S PAN - AFRICA" },
+            { id: "ItdXaWUVF48", name: "ROSIE'S PAN AFRICA" },
             { id: "ydYDqZQpim8", name: "NAMIB DESERT LIVE" },
             { id: "S46DdA8Mc4I", name: "MAKOV STORK NEST" },
-            { id: "D_uuHn0-4_L08ZPQ", name: "EXPLORE - LIVE REEF" }
+            { id: "qHXFLsnKDq0", name: "MOUNTAIN STREAM" },
+            { id: "F0GOOP82094", name: "MORTEN HILMER FOREST" },
+            { id: "4BrvMGznLTo", name: "MOUNTAIN WATERFALL" },
+            { id: "ayMw6zvsUpQ", name: "PACIFIC REEF CAM" },
+            { id: "iws3rh5vLAQ", name: "KILAUEA VOLCANO" },
+            { id: "jzx_n25g3kA", name: "UTOPIA UNDERWATER" },
+            { id: "ouWBQoVFegI", name: "BALD EAGLE NEST" },
+            { id: "3szkFHfr6sA", name: "WOLONG PANDA GROVE" },
+            { id: "FqQJmDiW0xs", name: "ANCIENT EGYPT LIVE" },
+            { id: "aXAsMcmtJTc", name: "NETHERLANDS SEAL CAM" },
+            { id: "qJ8lYplu1y0", name: "MAUNAKEA METEOR CAM" },
+            { id: "yfSyjwY6zSQ", name: "GRACE GORILLA FOREST" },
+            { id: "azNqXbUW-K4", name: "TROPICAL FISH CAM" },
+            { id: "yuIm1V7Ne7I", name: "ONGUMA WATERHOLE" },
+            { id: "QOzC_AbsPlw", name: "SPACE AMBIENT HUD" }
         ];
 
         let currentIndex = 0;
         const iframe = document.getElementById('yt-iframe');
-        const title = document.getElementById('node-title');
-        const status = document.getElementById('node-status');
-        const hudL = document.getElementById('hud-L');
-        const uiElements = document.querySelectorAll('.ui-element');
+        const overlay = document.getElementById('nexus-overlay');
+        const huds = document.querySelectorAll('.hud');
 
         function updateNode() {
             const node = nodes[currentIndex];
-            const url = `https://www.youtube.com/embed/${node.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${node.id}&rel=0&modestbranding=1`;
-            iframe.src = url;
-            title.innerText = node.name;
-            status.innerText = `ACTIVE FEED: NODE_0${currentIndex + 1}`;
-            hudL.innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/13`;
+            iframe.src = `https://www.youtube.com/embed/${node.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${node.id}&rel=0&modestbranding=1`;
+            document.getElementById('node-title').innerText = node.name;
+            document.getElementById('node-status').innerText = `ACTIVE FEED: NODE_${String(currentIndex + 1).padStart(2, '0')}`;
+            document.getElementById('hud-L').innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/23`;
+            
+            // Subtle visual feedback for the swap
+            iframe.classList.remove('glitch-flash');
+            void iframe.offsetWidth; // trigger reflow
+            iframe.classList.add('glitch-flash');
         }
 
         function cycleNode(direction) {
-            event.stopPropagation();
+            event.stopPropagation(); // Prevents the overlay from toggling when clicking arrows
             currentIndex = (currentIndex + direction + nodes.length) % nodes.length;
             updateNode();
         }
 
         function toggleUI() {
-            uiElements.forEach(el => el.classList.toggle('hidden'));
+            const isHidden = overlay.classList.contains('hidden');
+            overlay.classList.toggle('hidden');
+            huds.forEach(h => h.classList.toggle('hidden'));
         }
 
-        // Initialize First Node
         updateNode();
     </script>
 </body>
