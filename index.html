@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Georgia Aquarium - Indo-Pacific Barrier Reef</title>
+    <style>
+        :root {
+            --glow-color: rgba(0, 195, 255, 0.8);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Fullscreen Video Container */
+        .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Holo-Frame Container */
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            transition: opacity 0.3s ease;
+        }
+
+        /* The Glass Holo Frame */
+        .holo-frame {
+            position: relative;
+            width: 300px;
+            padding: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 0 20px var(--glow-color), inset 0 0 15px var(--glow-color);
+            text-align: center;
+            color: white;
+            animation: breathe 3s infinite alternate;
+        }
+
+        @keyframes breathe {
+            from { box-shadow: 0 0 15px var(--glow-color); }
+            to { box-shadow: 0 0 30px var(--glow-color), inset 0 0 20px var(--glow-color); }
+        }
+
+        .plan-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: rgba(0, 195, 255, 0.3);
+            border: 1px solid #00c3ff;
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .plan-btn:hover {
+            background: #00c3ff;
+            box-shadow: 0 0 20px #00c3ff;
+            transform: scale(1.05);
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 20;
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glow-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Fullscreen Prompt */
+        #fs-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 30;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="fs-toggle" class="icon-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
+
+    <div class="video-background">
+        <iframe src="https://www.georgiaaquarium.org/webcam/indo-pacific-barrier-reef/" allow="autoplay; fullscreen"></iframe>
+    </div>
+
+    <div id="ui-overlay" onclick="closeFrame(event)">
+        <div class="holo-frame" id="holoFrame" onclick="event.stopPropagation()">
+            <h2 style="margin-top:0; text-shadow: 0 0 10px #00c3ff;">Georgia Aquarium</h2>
+            <p>Experience the Indo-Pacific Barrier Reef</p>
+            <a href="https://www.georgiaaquarium.org/webcam/indo-pacific-barrier-reef/" target="_blank" class="plan-btn">Plan Now</a>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="icon-btn" onclick="toggleFrame()">Display Info</button>
+    </div>
+
+    <script>
+        const overlay = document.getElementById('ui-overlay');
+
+        function toggleFrame() {
+            overlay.classList.toggle('hidden');
+        }
+
+        function closeFrame(event) {
+            // Closes if clicking the darkened background (outside the frame)
+            overlay.classList.add('hidden');
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Keep the iframe focused for interactive elements if needed
+        window.addEventListener('blur', function() {
+            // Logic for maintaining immersion if required
+        });
+    </script>
+</body>
+</html>
