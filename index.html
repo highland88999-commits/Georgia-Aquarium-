@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Georgia Aquarium - Indo-Pacific Barrier Reef</title>
+    <title>Georgia Aquarium - Tropical Reef</title>
     <style>
         :root {
-            --glow-color: rgba(0, 195, 255, 0.8);
-            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glow-color: rgba(0, 195, 255, 0.9);
+            --olympian-glow: rgba(255, 215, 0, 0.7);
+            /* Transparent glass background */
+            --glass-bg: rgba(255, 255, 255, 0);
         }
 
         body, html {
@@ -17,10 +19,10 @@
             height: 100%;
             overflow: hidden;
             background-color: #000;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
         }
 
-        /* Fullscreen Video Container */
+        /* YouTube Background */
         .video-background {
             position: absolute;
             top: 0;
@@ -28,15 +30,21 @@
             width: 100%;
             height: 100%;
             z-index: 1;
+            pointer-events: none; /* Allows clicks to pass through to the UI */
         }
 
         iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+            width: 100vw;
+            height: 56.25vw; /* 16:9 Aspect Ratio */
+            min-height: 100vh;
+            min-width: 177.77vh;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
 
-        /* Holo-Frame Container */
+        /* Holo-Frame Overlay */
         #ui-overlay {
             position: fixed;
             top: 0;
@@ -47,85 +55,106 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.2);
-            transition: opacity 0.3s ease;
+            background: rgba(0, 0, 0, 0.1);
+            transition: opacity 0.8s ease, visibility 0.8s;
         }
 
-        /* The Glass Holo Frame */
         .holo-frame {
             position: relative;
-            width: 300px;
+            width: 320px;
             padding: 40px;
             background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            box-shadow: 0 0 20px var(--glow-color), inset 0 0 15px var(--glow-color);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            /* Only the glowing border is visible */
+            border: 1.5px solid var(--glow-color);
+            border-radius: 24px;
+            box-shadow: 0 0 25px var(--glow-color), inset 0 0 15px var(--glow-color);
             text-align: center;
             color: white;
-            animation: breathe 3s infinite alternate;
+            animation: breathe 4s infinite alternate;
         }
 
         @keyframes breathe {
             from { box-shadow: 0 0 15px var(--glow-color); }
-            to { box-shadow: 0 0 30px var(--glow-color), inset 0 0 20px var(--glow-color); }
+            to { box-shadow: 0 0 40px var(--glow-color), inset 0 0 25px var(--glow-color); }
         }
 
-        .plan-btn {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 12px 30px;
-            background: rgba(0, 195, 255, 0.3);
-            border: 1px solid #00c3ff;
-            color: white;
+        .btn-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            display: block;
+            padding: 12px 20px;
             text-decoration: none;
-            border-radius: 50px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            border-radius: 12px;
+            font-weight: 600;
             transition: all 0.3s ease;
             cursor: pointer;
         }
 
-        .plan-btn:hover {
-            background: #00c3ff;
-            box-shadow: 0 0 20px #00c3ff;
-            transform: scale(1.05);
+        .olympian-btn {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid gold;
+            color: #ffd700;
+            text-shadow: 0 0 5px gold;
         }
 
-        /* Controls */
-        .controls {
+        .olympian-btn:hover {
+            background: gold;
+            color: black;
+            box-shadow: 0 0 20px gold;
+        }
+
+        .plan-btn {
+            background: rgba(0, 195, 255, 0.1);
+            border: 1px solid #00c3ff;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .plan-btn:hover { background: #00c3ff; box-shadow: 0 0 20px #00c3ff; }
+
+        /* UI Controls */
+        .bottom-left-brand {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 30px;
+            left: 30px;
             z-index: 20;
-            display: flex;
-            gap: 10px;
+        }
+
+        .controls-right {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 20;
         }
 
         .icon-btn {
-            background: var(--glass-bg);
+            background: rgba(255,255,255,0.1);
             border: 1px solid var(--glow-color);
             color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            border-radius: 50px;
             cursor: pointer;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            transition: 0.4s;
         }
 
-        .hidden {
-            display: none !important;
-        }
+        .icon-btn:hover { background: var(--glow-color); box-shadow: 0 0 15px var(--glow-color); }
 
-        /* Fullscreen Prompt */
-        #fs-toggle {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 30;
-            opacity: 0.6;
-        }
+        #fs-toggle { position: fixed; top: 20px; right: 20px; z-index: 30; }
+
+        .hidden { opacity: 0 !important; visibility: hidden !important; }
+
     </style>
 </head>
 <body>
@@ -133,32 +162,46 @@
     <button id="fs-toggle" class="icon-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
 
     <div class="video-background">
-        <iframe src="https://www.georgiaaquarium.org/webcam/indo-pacific-barrier-reef/" allow="autoplay; fullscreen"></iframe>
+        <iframe src="https://www.youtube.com/embed/DHUnz4dyb54?autoplay=1&mute=1&controls=0&loop=1&playlist=DHUnz4dyb54&showinfo=0&rel=0" allow="autoplay; fullscreen"></iframe>
     </div>
 
     <div id="ui-overlay" onclick="closeFrame(event)">
-        <div class="holo-frame" id="holoFrame" onclick="event.stopPropagation()">
-            <h2 style="margin-top:0; text-shadow: 0 0 10px #00c3ff;">Georgia Aquarium</h2>
-            <p>Experience the Indo-Pacific Barrier Reef</p>
-            <a href="https://www.georgiaaquarium.org/webcam/indo-pacific-barrier-reef/" target="_blank" class="plan-btn">Plan Now</a>
+        <div class="holo-frame" onclick="event.stopPropagation()">
+            <h2 style="margin-top:0; text-shadow: 0 0 15px #00c3ff; letter-spacing: 2px;">GEORGIA AQUARIUM</h2>
+            <p style="font-size: 0.85rem; opacity: 0.9; text-transform: uppercase;">Live Reef Console</p>
+            
+            <div class="btn-stack">
+                <a href="mailto:stakeme10000@gmail.com?subject=Olympian Console Request" class="btn olympian-btn">
+                    Request an Olympian console for your website
+                </a>
+                <a href="https://www.georgiaaquarium.org/webcam/indo-pacific-barrier-reef/" target="_blank" class="btn plan-btn">
+                    Plan Now
+                </a>
+            </div>
         </div>
     </div>
 
-    <div class="controls">
-        <button class="icon-btn" onclick="toggleFrame()">Display Info</button>
+    <div class="bottom-left-brand">
+        <a href="https://architect-artemis.vercel.app/" target="_blank" class="icon-btn" style="border-color: gold; color: gold;">Visit Olympus</a>
+    </div>
+
+    <div class="controls-right">
+        <a href="https://explore.org" target="_blank" class="icon-btn">Explore.org</a>
     </div>
 
     <script>
         const overlay = document.getElementById('ui-overlay');
 
-        function toggleFrame() {
-            overlay.classList.toggle('hidden');
-        }
-
         function closeFrame(event) {
-            // Closes if clicking the darkened background (outside the frame)
             overlay.classList.add('hidden');
         }
+
+        // Re-open if user clicks background or button
+        document.body.addEventListener('click', (e) => {
+            if (overlay.classList.contains('hidden') && e.target.tagName !== 'A' && e.target.tagName !== 'BUTTON') {
+                overlay.classList.remove('hidden');
+            }
+        });
 
         function toggleFullScreen() {
             if (!document.fullscreenElement) {
@@ -170,9 +213,21 @@
             }
         }
 
-        // Keep the iframe focused for interactive elements if needed
-        window.addEventListener('blur', function() {
-            // Logic for maintaining immersion if required
+        // Logic to fade UI based on Fullscreen state
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                // Fade out everything when entering fullscreen
+                overlay.classList.add('hidden');
+                document.querySelector('.bottom-left-brand').classList.add('hidden');
+                document.querySelector('.controls-right').classList.add('hidden');
+                document.getElementById('fs-toggle').style.opacity = "0.2";
+            } else {
+                // Bring everything back when exiting fullscreen
+                overlay.classList.remove('hidden');
+                document.querySelector('.bottom-left-brand').classList.remove('hidden');
+                document.querySelector('.controls-right').classList.remove('hidden');
+                document.getElementById('fs-toggle').style.opacity = "1";
+            }
         });
     </script>
 </body>
