@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Georgia Aquarium - Tropical Reef</title>
+    <title>Georgia Aquarium • Immersive</title>
     <style>
         :root {
-            --glow-color: #00c3ff;
+            --glow: #00c3ff;
             --gold: #ffd700;
-            --glass: rgba(0, 0, 0, 0.8);
         }
 
         body, html {
@@ -18,184 +17,157 @@
             height: 100%;
             overflow: hidden;
             background-color: #000;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Courier New', monospace;
         }
 
-        /* Layer 1: The Base Vercel Blob Video (The "Black Space" Filler) */
-        .base-render {
+        /* The Base Layers (Full Screen, No Gaps) */
+        .video-layer {
             position: absolute;
             inset: 0;
+            width: 100%;
+            height: 100%;
             z-index: 1;
         }
-        #bg-render {
-            width: 100%;
-            height: 100%;
+
+        #bg-render, #yt-iframe {
+            width: 100vw;
+            height: 56.25vw; /* 16:9 Aspect */
+            min-height: 100vh;
+            min-width: 177.77vh;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             object-fit: cover;
-        }
-
-        /* Layer 2: The YouTube Feed (Maximize-able) */
-        #yt-wrapper {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 320px;
-            height: 180px;
-            z-index: 5;
-            transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
-            border: 1px solid var(--glow-color);
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-        }
-
-        #yt-wrapper.maximized {
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 50; /* Above base render, behind UI */
-            border-radius: 0;
             border: none;
         }
 
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+        /* YouTube sits above the Blob render */
+        #yt-iframe { z-index: 2; pointer-events: none; }
 
-        /* Layer 3: The UI Overlay */
-        #ui-overlay {
+        /* UI Layer */
+        #ui-wrapper {
             position: fixed;
             inset: 0;
-            z-index: 100;
+            z-index: 10;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(5px);
-            transition: opacity 0.5s ease, visibility 0.5s;
+            backdrop-filter: blur(8px);
+            transition: opacity 0.6s ease, visibility 0.6s;
+            cursor: pointer;
         }
 
         .holo-frame {
-            width: 300px;
-            padding: 35px;
-            background: var(--glass);
-            border: 1.5px solid var(--glow-color);
+            width: min(320px, 85vw);
+            padding: 40px;
+            background: rgba(0, 10, 20, 0.8);
+            border: 1.5px solid var(--glow);
             border-radius: 24px;
-            box-shadow: 0 0 30px var(--glow-color);
+            box-shadow: 0 0 30px var(--glow), inset 0 0 15px var(--glow);
             text-align: center;
             color: white;
-            pointer-events: auto; /* Ensures frame clicks don't trigger the toggle */
+            pointer-events: auto; /* Buttons still clickable */
         }
 
-        .btn-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        .btn-stack { display: flex; flex-direction: column; gap: 15px; margin-top: 25px; }
         .btn {
             padding: 12px;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: bold;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
+            letter-spacing: 1px;
             transition: 0.3s;
-            border: 1px solid var(--glow-color);
+            border: 1px solid var(--glow);
             color: white;
             background: rgba(0, 195, 255, 0.1);
         }
-        .btn:hover { background: var(--glow-color); color: #000; }
-        .olympian { border-color: var(--gold); color: var(--gold); }
-        .olympian:hover { background: var(--gold); }
+        .btn:hover { background: var(--glow); color: #000; box-shadow: 0 0 15px var(--glow); }
 
-        /* Controls */
-        .fixed-nav { position: fixed; z-index: 110; transition: 0.5s; }
-        .top-L { top: 20px; left: 20px; }
-        .top-R { top: 20px; right: 20px; }
-        .bot-L { bottom: 30px; left: 30px; }
-        .bot-R { bottom: 30px; right: 30px; }
-
-        .icon-btn {
-            background: rgba(0,0,0,0.7);
-            border: 1px solid var(--glow-color);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 50px;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
+        /* HUD Elements */
+        .hud {
+            position: fixed;
+            z-index: 15;
+            transition: opacity 0.5s;
+            pointer-events: auto;
+        }
+        .bottom-L { bottom: 30px; left: 30px; }
+        .bottom-R { bottom: 30px; right: 30px; }
+        
+        .nav-link {
+            text-decoration: none;
+            color: var(--gold);
             font-size: 0.7rem;
-            text-transform: uppercase;
+            border: 1px solid var(--gold);
+            padding: 8px 15px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.5);
         }
 
-        .hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        /* Utility Classes */
+        .hidden { opacity: 0; visibility: hidden; }
     </style>
 </head>
-<body onclick="toggleUI()">
+<body onclick="toggleNexusUI()">
 
-    <div class="base-render">
+    <div class="video-layer">
         <video id="bg-render" autoplay muted loop playsinline>
             <source src="https://w6gqoaajkeprilw9.public.blob.vercel-storage.com/nexus_render%20%289%29.webm" type="video/webm">
         </video>
     </div>
 
-    <div id="yt-wrapper" onclick="event.stopPropagation()">
-        <iframe src="https://www.youtube.com/embed/DHUnz4dyb54?autoplay=1&mute=1&controls=0&loop=1&playlist=DHUnz4dyb54&rel=0" allow="autoplay; fullscreen"></iframe>
+    <div class="video-layer">
+        <iframe id="yt-iframe" 
+            src="https://www.youtube.com/embed/DHUnz4dyb54?autoplay=1&mute=1&controls=0&loop=1&playlist=DHUnz4dyb54&rel=0&iv_load_policy=3&modestbranding=1" 
+            allow="autoplay; fullscreen">
+        </iframe>
     </div>
 
-    <div class="fixed-nav top-L ui-element">
-        <button class="icon-btn" onclick="maximizeFeed(event)">Toggle Max Feed</button>
-    </div>
-
-    <div class="fixed-nav top-R ui-element">
-        <button class="icon-btn" onclick="toggleFullScreen(event)">⛶ Fullscreen</button>
-    </div>
-
-    <div id="ui-overlay" class="ui-element">
+    <div id="ui-wrapper">
         <div class="holo-frame" onclick="event.stopPropagation()">
-            <h2 style="margin:0; letter-spacing: 2px;">GEORGIA AQUARIUM</h2>
+            <h2 style="margin:0; letter-spacing: 3px; text-shadow: 0 0 10px var(--glow);">AQUARIUM</h2>
+            <p style="font-size: 0.7rem; opacity: 0.6; margin-top: 5px;">NEXUS NODE • REEF_FEED</p>
+            
             <div class="btn-stack">
-                <a href="mailto:stakeme10000@gmail.com" class="btn olympian">Request Olympian Console</a>
-                <a href="https://www.georgiaaquarium.org" target="_blank" class="btn">External Portal</a>
+                <a href="mailto:stakeme10000@gmail.com" class="btn">Request Console</a>
+                <a href="https://www.georgiaaquarium.org" target="_blank" class="btn" style="border-color: var(--gold); color: var(--gold);">Official Site</a>
             </div>
+            <p style="font-size: 0.6rem; margin-top: 20px; opacity: 0.5;">TAP ANYWHERE TO HIDE UI</p>
         </div>
     </div>
 
-    <div class="fixed-nav bot-L ui-element">
-        <a href="https://architect-artemis.vercel.app/" target="_blank" class="icon-btn" style="color:var(--gold); border-color:var(--gold);">Visit Olympus</a>
+    <div class="hud bottom-L">
+        <a href="https://architect-artemis.vercel.app/" target="_blank" class="nav-link">RETURN TO OLYMPUS</a>
     </div>
-
-    <div class="fixed-nav bot-R ui-element">
-        <a href="https://explore.org" target="_blank" class="icon-btn">Explore.org</a>
+    <div class="hud bottom-R">
+        <a href="https://explore.org" target="_blank" class="nav-link" style="color: var(--glow); border-color: var(--glow);">EXPLORE.ORG</a>
     </div>
 
     <script>
-        const uiElements = document.querySelectorAll('.ui-element');
-        const ytWrapper = document.getElementById('yt-wrapper');
+        const ui = document.getElementById('ui-wrapper');
+        const huds = document.querySelectorAll('.hud');
 
-        function toggleUI() {
-            uiElements.forEach(el => el.classList.toggle('hidden'));
-        }
-
-        function maximizeFeed(e) {
-            e.stopPropagation();
-            ytWrapper.classList.toggle('maximized');
-        }
-
-        function toggleFullScreen(e) {
-            e.stopPropagation();
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
+        function toggleNexusUI() {
+            const isHidden = ui.classList.contains('hidden');
+            
+            if (isHidden) {
+                ui.classList.remove('hidden');
+                huds.forEach(h => h.classList.remove('hidden'));
             } else {
-                document.exitFullscreen();
+                ui.classList.add('hidden');
+                huds.forEach(h => h.classList.add('hidden'));
             }
         }
 
-        // Auto-hide UI in Fullscreen for immersion
-        document.addEventListener('fullscreenchange', () => {
-            if (document.fullscreenElement) {
-                uiElements.forEach(el => el.classList.add('hidden'));
-            } else {
-                uiElements.forEach(el => el.classList.remove('hidden'));
-            }
+        // Prevent UI from closing when clicking links or buttons
+        document.querySelectorAll('a, .holo-frame').forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
         });
     </script>
 </body>
