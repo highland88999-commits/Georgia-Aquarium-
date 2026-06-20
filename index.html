@@ -8,6 +8,7 @@
         :root {
             --glow: #00f2ff;
             --gold: #d4af37;
+            --danger: #ff3366;
             --ui-bg: rgba(0, 10, 20, 0.85);
         }
 
@@ -19,7 +20,7 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* Video Engine with Mirror Support */
+        /* Video Engine */
         .video-engine {
             position: fixed;
             inset: 0;
@@ -63,15 +64,8 @@
             border-color: var(--glow);
             box-shadow: 0 0 15px var(--glow);
         }
-        .mirror-btn svg {
-            width: 20px;
-            fill: var(--glow);
-        }
-
-        /* Mirror State */
-        .mirrored {
-            transform: scaleX(-1);
-        }
+        .mirror-btn svg { width: 20px; fill: var(--glow); }
+        .mirrored { transform: scaleX(-1); }
 
         /* Nav Arrows */
         .nav-arrow {
@@ -112,7 +106,7 @@
         }
 
         .holo-frame {
-            width: min(380px, 85vw);
+            width: min(420px, 85vw);
             padding: 40px;
             background: var(--ui-bg);
             border: 2.5px solid var(--glow);
@@ -136,8 +130,26 @@
             color: var(--glow);
             background: rgba(0, 242, 255, 0.05);
             transition: 0.3s;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
         }
         .btn:hover { background: var(--glow); color: #000; }
+        
+        .btn-danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .btn-danger:hover {
+            background: var(--danger); color: #000;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-row .btn { margin-top: 0; }
 
         .hud {
             position: fixed;
@@ -159,9 +171,7 @@
     </div>
 
     <div class="mirror-btn" onclick="toggleMirror(event)" title="Mirror Perspective">
-        <svg viewBox="0 0 24 24">
-            <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>
-        </svg>
+        <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
     </div>
 
     <div class="nav-arrow arrow-L" onclick="cycleNode(-1)">‹</div>
@@ -169,17 +179,24 @@
 
     <div id="nexus-overlay">
         <div class="holo-frame" onclick="event.stopPropagation()">
-            <h1 id="node-title" style="margin:0; font-size: 1.1rem; letter-spacing: 4px; color: var(--glow);">GEORGIA AQUARIUM</h1>
-            <p id="node-status" style="font-size: 0.6rem; opacity: 0.6; margin-top: 10px;">ACTIVE FEED: NODE_01</p>
+            <h1 id="node-title" style="margin:0; font-size: 1.1rem; letter-spacing: 4px; color: var(--glow);">SYSTEM BOOT</h1>
+            <p id="node-status" style="font-size: 0.6rem; opacity: 0.6; margin-top: 10px;">LOADING NODES...</p>
+            
+            <div class="btn-row">
+                <button class="btn" onclick="promptAddNode()">+ Add Feed</button>
+                <button class="btn btn-danger" onclick="removeCurrentNode()">- Remove Feed</button>
+            </div>
+            
             <a href="mailto:stakeme10000@gmail.com" class="btn">Request Console</a>
             <a href="https://architect-artemis.vercel.app/" target="_blank" class="btn" style="border-color:var(--gold); color:var(--gold);">Visit Olympus</a>
         </div>
     </div>
 
-    <div class="hud" style="left: 30px;" id="hud-L">NODE: 01/23</div>
+    <div class="hud" style="left: 30px;" id="hud-L">NODE: --/--</div>
 
     <script>
-        const nodes = [
+        // Initial Database (including deduplicated new ones)
+        const defaultNodes = [
             { id: "DHUnz4dyb54", name: "GEORGIA AQUARIUM" },
             { id: "XsOU8JnEpNM", name: "OL DONYO LODGE" },
             { id: "5e4lsEe4Vew", name: "WOLF CENTER NORTH" },
@@ -202,21 +219,116 @@
             { id: "yfSyjwY6zSQ", name: "GRACE GORILLA FOREST" },
             { id: "azNqXbUW-K4", name: "TROPICAL FISH CAM" },
             { id: "yuIm1V7Ne7I", name: "ONGUMA WATERHOLE" },
-            { id: "QOzC_AbsPlw", name: "SPACE AMBIENT HUD" }
+            { id: "QOzC_AbsPlw", name: "SPACE AMBIENT HUD" },
+            // Newly Requested Aquarium / Live Feeds
+            { id: "XyPU5-pNg5E", name: "AQUARIUM FEED 01" },
+            { id: "Io1Kle7QR-E", name: "AQUARIUM FEED 02" },
+            { id: "RZFMYVNhd4k", name: "AQUARIUM FEED 03" },
+            { id: "JMMoRwYo5kE", name: "AQUARIUM FEED 04" },
+            { id: "HlJ4aRtYhoo", name: "AQUARIUM FEED 05" },
+            { id: "iWCeBAxRCBo", name: "AQUARIUM FEED 06" },
+            { id: "g6wxYiESkE4", name: "AQUARIUM FEED 07" },
+            { id: "-qvYCbvbeN8", name: "AQUARIUM FEED 08" },
+            { id: "SUXPnIEpbn4", name: "AQUARIUM FEED 09" },
+            { id: "tEtg5Kg3voQ", name: "AQUARIUM FEED 10" },
+            { id: "abbR-Ttd-cA", name: "AQUARIUM FEED 11" },
+            { id: "dN1uDn-Luno", name: "AQUARIUM FEED 12" },
+            { id: "-479TZi-EAs", name: "AQUARIUM FEED 13" },
+            { id: "qi0mY6zVQnY", name: "AQUARIUM FEED 14" },
+            { id: "MwcqP3ta6RI", name: "AQUARIUM FEED 15" },
+            { id: "fIMbMz2P7Bs", name: "AQUARIUM FEED 16" },
+            { id: "h8O0UXsL7uk", name: "AQUARIUM FEED 17" },
+            { id: "0FBiyFpV__g", name: "AQUARIUM FEED 18" },
+            { id: "UDAZWxehMAI", name: "AQUARIUM FEED 19" },
+            { id: "w3LjpFhySTg", name: "AQUARIUM FEED 20" },
+            { id: "3e_uPkJCTNo", name: "AQUARIUM FEED 21" },
+            { id: "ZrePsYz4c6g", name: "AQUARIUM FEED 22" },
+            { id: "gJVnp5fF0vM", name: "AQUARIUM FEED 23" },
+            { id: "-Vck0hn-zqk", name: "AQUARIUM FEED 24" },
+            { id: "typxqJU-pFQ", name: "AQUARIUM FEED 25" },
+            { id: "UpwNqncnqTE", name: "AQUARIUM FEED 26" },
+            { id: "E0TZTmTK-Ws", name: "AQUARIUM FEED 27" }
         ];
 
+        let nodes = [];
         let currentIndex = 0;
         const iframe = document.getElementById('yt-iframe');
         const engine = document.getElementById('engine');
         const overlay = document.getElementById('nexus-overlay');
         const huds = document.querySelectorAll('.hud');
 
+        function initSystem() {
+            // Load custom local data if available, else load defaults
+            const savedData = localStorage.getItem('nexusNodes');
+            if (savedData) {
+                nodes = JSON.parse(savedData);
+            } else {
+                nodes = [...defaultNodes];
+            }
+            
+            // SUPABASE INTEGRATION HOOK:
+            // if you wire supabase, replace the above with a fetch:
+            // const { data } = await supabase.from('nodes').select('*');
+            // nodes = data;
+
+            updateNode();
+        }
+
+        function saveSystemState() {
+            localStorage.setItem('nexusNodes', JSON.stringify(nodes));
+            // SUPABASE INTEGRATION HOOK: 
+            // supabase.from('nodes').upsert(nodes);
+        }
+
+        function extractYouTubeID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function promptAddNode() {
+            const url = prompt("Enter YouTube Live Stream URL:");
+            if (!url) return;
+
+            const ytId = extractYouTubeID(url);
+            if (!ytId) {
+                alert("Invalid YouTube URL.");
+                return;
+            }
+
+            const customName = prompt("Enter a Name for this feed:", "CUSTOM USER FEED") || "CUSTOM FEED";
+            
+            nodes.push({ id: ytId, name: customName.toUpperCase() });
+            saveSystemState();
+            
+            // Jump to newly added feed
+            currentIndex = nodes.length - 1;
+            updateNode();
+        }
+
+        function removeCurrentNode() {
+            if (nodes.length <= 1) {
+                alert("Cannot remove the last remaining feed.");
+                return;
+            }
+            
+            if (confirm(`Remove "${nodes[currentIndex].name}" from your rotation?`)) {
+                nodes.splice(currentIndex, 1);
+                saveSystemState();
+                
+                // Adjust index and reload
+                if (currentIndex >= nodes.length) currentIndex = 0;
+                updateNode();
+            }
+        }
+
         function updateNode() {
+            if(nodes.length === 0) return;
             const node = nodes[currentIndex];
             iframe.src = `https://www.youtube.com/embed/${node.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${node.id}&rel=0&modestbranding=1`;
             document.getElementById('node-title').innerText = node.name;
             document.getElementById('node-status').innerText = `ACTIVE FEED: NODE_${String(currentIndex + 1).padStart(2, '0')}`;
-            document.getElementById('hud-L').innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/23`;
+            document.getElementById('hud-L').innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/${nodes.length}`;
         }
 
         function toggleMirror(e) {
@@ -235,7 +347,8 @@
             huds.forEach(h => h.classList.toggle('hidden'));
         }
 
-        updateNode();
+        // Boot sequence
+        initSystem();
     </script>
 </body>
 </html>
