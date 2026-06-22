@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus Multi-Node Console</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --glow: #00f2ff;
@@ -153,7 +156,6 @@
 
         .hud {
             position: fixed;
-            /* Adjusted from 30px to 60px to clear the new cyber-footer */
             bottom: 60px;
             font-size: 0.6rem;
             letter-spacing: 3px;
@@ -177,7 +179,6 @@
             border-top: 1px solid rgba(0, 255, 255, 0.15); 
             z-index: 9999;
             font-family: 'Courier New', Courier, monospace;
-            /* Prevents footer from intercepting background clicks intended for UI toggle */
             pointer-events: none; 
         }
         .visit-count {
@@ -367,30 +368,49 @@
         function toggleUI() {
             overlay.classList.toggle('hidden');
             huds.forEach(h => h.classList.toggle('hidden'));
-            // Optionally target the new footer as well if you want it to hide with the UI overlay:
-            // document.querySelector('.cyber-footer').classList.toggle('hidden');
         }
 
-        // Multiverse Tracker Uplink Logic
-        async function updateMultiverseCount() {
+        // ==========================================
+        // DIRECT SUPABASE UPLINK LOGIC (Replaces Vercel Fetch)
+        // ==========================================
+        const supabaseUrl = 'https://ezfwzqxwafvdjtwnmyrx.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Znd6cXh3YWZ2ZGp0d25teXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTA2NzIsImV4cCI6MjA5NzY2NjY3Mn0.baxnDWZ9rSZobzqnAOND7SuJpXbl4wmRyUYTQl4whPE';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        async function updateMultiverseCount(isInitialLoad = false) {
             const displayElement = document.getElementById('counter-display');
             
             try {
-                const API_ENDPOINT = 'https://multiverse-tracker-5sgfxx5nr-merlin-ambros-projects.vercel.app/api/increment-view';
-                
-                const response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                // Generate a true, persistent Unique ID for this device
+                let visitorId = localStorage.getItem('nexus_visitor_id');
+                if (!visitorId) {
+                    visitorId = crypto.randomUUID();
+                    localStorage.setItem('nexus_visitor_id', visitorId);
+                }
 
-                if (!response.ok) throw new Error('Network fault');
+                // Only fire the tracking RPC on the very first load
+                if (isInitialLoad) {
+                    await supabaseClient.rpc('track_ping', { p_ip_hash: visitorId });
+                }
 
-                const data = await response.json();
+                // Fetch the updated totals
+                const { data: globalData } = await supabaseClient
+                    .from('global_stats')
+                    .select('total_pings')
+                    .single();
+
+                const { count: uniqueCount } = await supabaseClient
+                    .from('unique_visitors')
+                    .select('*', { count: 'exact', head: true });
+
+                const total = globalData ? globalData.total_pings : 0;
+                const unique = uniqueCount !== null ? uniqueCount : 0;
                 
+                // Formatted display
                 displayElement.innerHTML = `
-                    UNIQUE TRAVERSALS: [ <span style="color: #ff00ff; text-shadow: 0 0 10px #ff00ff;">${data.unique}</span> ] 
+                    UNIQUE TRAVERSALS: [ <span style="color: #ff00ff; text-shadow: 0 0 10px #ff00ff;">${unique}</span> ] 
                     <span style="opacity: 0.5; margin: 0 10px;">///</span> 
-                    TOTAL PINGS: [ <span style="color: #00ffff;">${data.total}</span> ]
+                    TOTAL PINGS: [ <span style="color: #00ffff;">${total}</span> ]
                 `;
                 displayElement.classList.remove('loading');
 
@@ -402,8 +422,11 @@
         }
 
         // Boot sequences
-        window.addEventListener('DOMContentLoaded', updateMultiverseCount);
-        initSystem();
+        window.addEventListener('load', () => {
+            initSystem();
+            updateMultiverseCount(true); // Register the view
+            setInterval(() => updateMultiverseCount(false), 60000); // Keep counter updated
+        });
     </script>
 </body>
 </html>
