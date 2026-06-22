@@ -153,7 +153,8 @@
 
         .hud {
             position: fixed;
-            bottom: 30px;
+            /* Adjusted from 30px to 60px to clear the new cyber-footer */
+            bottom: 60px;
             font-size: 0.6rem;
             letter-spacing: 3px;
             color: rgba(255,255,255,0.4);
@@ -162,6 +163,33 @@
         }
 
         .hidden { opacity: 0 !important; visibility: hidden !important; }
+
+        /* Multiverse Tracker CSS Integration */
+        .cyber-footer {
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            text-align: center; 
+            padding: 12px 0;
+            background: rgba(5, 5, 5, 0.85); 
+            backdrop-filter: blur(4px);
+            border-top: 1px solid rgba(0, 255, 255, 0.15); 
+            z-index: 9999;
+            font-family: 'Courier New', Courier, monospace;
+            /* Prevents footer from intercepting background clicks intended for UI toggle */
+            pointer-events: none; 
+        }
+        .visit-count {
+            color: #00ffff; 
+            font-size: 0.75rem; 
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 15px rgba(0, 255, 255, 0.4);
+            letter-spacing: 1.5px; 
+            text-transform: uppercase;
+        }
+        .loading { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
 </head>
 <body onclick="toggleUI()">
@@ -194,8 +222,14 @@
 
     <div class="hud" style="left: 30px;" id="hud-L">NODE: --/--</div>
 
+    <footer class="cyber-footer">
+        <div class="visit-count" id="counter-display">
+            UPLINK ESTABLISHING <span class="loading">...</span>
+        </div>
+    </footer>
+
     <script>
-        // Initial Database (including deduplicated new ones)
+        // Initial Database
         const defaultNodes = [
             { id: "DHUnz4dyb54", name: "GEORGIA AQUARIUM" },
             { id: "XsOU8JnEpNM", name: "OL DONYO LODGE" },
@@ -220,7 +254,6 @@
             { id: "azNqXbUW-K4", name: "TROPICAL FISH CAM" },
             { id: "yuIm1V7Ne7I", name: "ONGUMA WATERHOLE" },
             { id: "QOzC_AbsPlw", name: "SPACE AMBIENT HUD" },
-            // Newly Requested Aquarium / Live Feeds
             { id: "XyPU5-pNg5E", name: "AQUARIUM FEED 01" },
             { id: "Io1Kle7QR-E", name: "AQUARIUM FEED 02" },
             { id: "RZFMYVNhd4k", name: "AQUARIUM FEED 03" },
@@ -258,26 +291,17 @@
         const huds = document.querySelectorAll('.hud');
 
         function initSystem() {
-            // Load custom local data if available, else load defaults
             const savedData = localStorage.getItem('nexusNodes');
             if (savedData) {
                 nodes = JSON.parse(savedData);
             } else {
                 nodes = [...defaultNodes];
             }
-            
-            // SUPABASE INTEGRATION HOOK:
-            // if you wire supabase, replace the above with a fetch:
-            // const { data } = await supabase.from('nodes').select('*');
-            // nodes = data;
-
             updateNode();
         }
 
         function saveSystemState() {
             localStorage.setItem('nexusNodes', JSON.stringify(nodes));
-            // SUPABASE INTEGRATION HOOK: 
-            // supabase.from('nodes').upsert(nodes);
         }
 
         function extractYouTubeID(url) {
@@ -301,7 +325,6 @@
             nodes.push({ id: ytId, name: customName.toUpperCase() });
             saveSystemState();
             
-            // Jump to newly added feed
             currentIndex = nodes.length - 1;
             updateNode();
         }
@@ -316,7 +339,6 @@
                 nodes.splice(currentIndex, 1);
                 saveSystemState();
                 
-                // Adjust index and reload
                 if (currentIndex >= nodes.length) currentIndex = 0;
                 updateNode();
             }
@@ -345,9 +367,42 @@
         function toggleUI() {
             overlay.classList.toggle('hidden');
             huds.forEach(h => h.classList.toggle('hidden'));
+            // Optionally target the new footer as well if you want it to hide with the UI overlay:
+            // document.querySelector('.cyber-footer').classList.toggle('hidden');
         }
 
-        // Boot sequence
+        // Multiverse Tracker Uplink Logic
+        async function updateMultiverseCount() {
+            const displayElement = document.getElementById('counter-display');
+            
+            try {
+                const API_ENDPOINT = 'https://multiverse-tracker-5sgfxx5nr-merlin-ambros-projects.vercel.app/api/increment-view';
+                
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error('Network fault');
+
+                const data = await response.json();
+                
+                displayElement.innerHTML = `
+                    UNIQUE TRAVERSALS: [ <span style="color: #ff00ff; text-shadow: 0 0 10px #ff00ff;">${data.unique}</span> ] 
+                    <span style="opacity: 0.5; margin: 0 10px;">///</span> 
+                    TOTAL PINGS: [ <span style="color: #00ffff;">${data.total}</span> ]
+                `;
+                displayElement.classList.remove('loading');
+
+            } catch (error) {
+                console.error('Uplink failed:', error);
+                displayElement.innerHTML = `MULTIVERSE NODE: [ <span style="color: #ff3366;">OFFLINE</span> ]`;
+                displayElement.classList.remove('loading');
+            }
+        }
+
+        // Boot sequences
+        window.addEventListener('DOMContentLoaded', updateMultiverseCount);
         initSystem();
     </script>
 </body>
