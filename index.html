@@ -230,7 +230,22 @@
     </footer>
 
     <script>
-        // Initial Database
+        // ==========================================
+        // SUPABASE UPLINK & CONFIGURATION
+        // ==========================================
+        const supabaseUrl = 'https://dfooodizpfqxcbhzadrb.supabase.co';
+        const supabaseAnonKey = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmb29vZGl6cGZxeGNiaHphZHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1OTkwMTgsImV4cCI6MjA5OTE3NTAxOH0.Fl5cmNxR2wnZQW1tBIXFo6gG6E-mFdR4oAfy3rK4dq0';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // Core System Variables
+        let nodes = [];
+        let currentIndex = 0;
+        const iframe = document.getElementById('yt-iframe');
+        const engine = document.getElementById('engine');
+        const overlay = document.getElementById('nexus-overlay');
+        const huds = document.querySelectorAll('.hud');
+
+        // Fallback Database (used if Supabase fails or is entirely empty)
         const defaultNodes = [
             { id: "DHUnz4dyb54", name: "GEORGIA AQUARIUM" },
             { id: "XsOU8JnEpNM", name: "OL DONYO LODGE" },
@@ -284,25 +299,30 @@
             { id: "E0TZTmTK-Ws", name: "AQUARIUM FEED 27" }
         ];
 
-        let nodes = [];
-        let currentIndex = 0;
-        const iframe = document.getElementById('yt-iframe');
-        const engine = document.getElementById('engine');
-        const overlay = document.getElementById('nexus-overlay');
-        const huds = document.querySelectorAll('.hud');
+        // ==========================================
+        // NODE MANAGEMENT LOGIC
+        // ==========================================
+        
+        async function initSystem() {
+            document.getElementById('node-status').innerText = "ESTABLISHING DATABASE UPLINK...";
+            
+            // Fetch feeds from Supabase
+            const { data, error } = await supabaseClient
+                .from('nexus_nodes')
+                .select('*')
+                .order('created_at', { ascending: true });
 
-        function initSystem() {
-            const savedData = localStorage.getItem('nexusNodes');
-            if (savedData) {
-                nodes = JSON.parse(savedData);
-            } else {
+            if (error) {
+                console.error('Database connection failed:', error);
+                document.getElementById('node-status').innerText = "UPLINK FAILED. USING LOCAL CACHE.";
                 nodes = [...defaultNodes];
+            } else if (data && data.length > 0) {
+                nodes = data; // Use database nodes if they exist
+            } else {
+                nodes = [...defaultNodes]; // Use local nodes if database is empty
             }
+            
             updateNode();
-        }
-
-        function saveSystemState() {
-            localStorage.setItem('nexusNodes', JSON.stringify(nodes));
         }
 
         function extractYouTubeID(url) {
@@ -311,40 +331,68 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        function promptAddNode() {
+        async function promptAddNode() {
             const url = prompt("Enter YouTube Live Stream URL:");
             if (!url) return;
 
             const ytId = extractYouTubeID(url);
             if (!ytId) {
-                alert("Invalid YouTube URL.");
+                alert("SYSTEM ERROR: Invalid YouTube URL.");
                 return;
             }
 
             const customName = prompt("Enter a Name for this feed:", "CUSTOM USER FEED") || "CUSTOM FEED";
             
+            // Insert new feed into Supabase
+            const { data, error } = await supabaseClient
+                .from('nexus_nodes')
+                .insert([{ id: ytId, name: customName.toUpperCase() }])
+                .select(); // Return the inserted data
+
+            if (error) {
+                console.error("Insert error:", error);
+                alert("UPLOAD FAILED. Node ID may already exist in the database.");
+                return;
+            }
+
+            // Update local array and jump to new feed
             nodes.push({ id: ytId, name: customName.toUpperCase() });
-            saveSystemState();
-            
             currentIndex = nodes.length - 1;
             updateNode();
         }
 
-        function removeCurrentNode() {
+        async function removeCurrentNode() {
             if (nodes.length <= 1) {
-                alert("Cannot remove the last remaining feed.");
+                alert("SYSTEM LOCK: Cannot remove the final active feed.");
                 return;
             }
             
-            if (confirm(`Remove "${nodes[currentIndex].name}" from your rotation?`)) {
+            const nodeToDelete = nodes[currentIndex];
+            
+            if (confirm(`PURGE "${nodeToDelete.name}" FROM GLOBAL DATABASE?`)) {
+                // Delete feed from Supabase
+                const { error } = await supabaseClient
+                    .from('nexus_nodes')
+                    .delete()
+                    .eq('id', nodeToDelete.id);
+
+                if (error) {
+                    console.error("Delete error:", error);
+                    alert("PURGE FAILED. Check console for details.");
+                    return;
+                }
+
+                // Update local array and cycle
                 nodes.splice(currentIndex, 1);
-                saveSystemState();
-                
                 if (currentIndex >= nodes.length) currentIndex = 0;
                 updateNode();
             }
         }
 
+        // ==========================================
+        // UI & HARDWARE CONTROLS
+        // ==========================================
+        
         function updateNode() {
             if(nodes.length === 0) return;
             const node = nodes[currentIndex];
@@ -371,12 +419,9 @@
         }
 
         // ==========================================
-        // DIRECT SUPABASE UPLINK LOGIC (Replaces Vercel Fetch)
+        // MULTIVERSE TRACKER LOGIC
         // ==========================================
-        const supabaseUrl = 'https://ezfwzqxwafvdjtwnmyrx.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Znd6cXh3YWZ2ZGp0d25teXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTA2NzIsImV4cCI6MjA5NzY2NjY3Mn0.baxnDWZ9rSZobzqnAOND7SuJpXbl4wmRyUYTQl4whPE';
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
-
+        
         async function updateMultiverseCount(isInitialLoad = false) {
             const displayElement = document.getElementById('counter-display');
             
@@ -415,13 +460,15 @@
                 displayElement.classList.remove('loading');
 
             } catch (error) {
-                console.error('Uplink failed:', error);
+                console.error('Tracker Uplink failed:', error);
                 displayElement.innerHTML = `MULTIVERSE NODE: [ <span style="color: #ff3366;">OFFLINE</span> ]`;
                 displayElement.classList.remove('loading');
             }
         }
 
-        // Boot sequences
+        // ==========================================
+        // BOOT SEQUENCE
+        // ==========================================
         window.addEventListener('load', () => {
             initSystem();
             updateMultiverseCount(true); // Register the view
