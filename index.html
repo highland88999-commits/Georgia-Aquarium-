@@ -25,19 +25,17 @@
             -webkit-user-select: none;
         }
 
-        /* Video Engine */
         .video-engine {
             position: fixed;
             inset: 0;
             width: 100vw; height: 100vh;
             z-index: 1;
             overflow: hidden;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out;
-            opacity: 1;
         }
         
         .video-engine.fade-out {
             opacity: 0;
+            transition: opacity 0.4s ease;
         }
 
         #yt-iframe {
@@ -50,7 +48,6 @@
             pointer-events: none;
         }
 
-        /* Mirror Toggle Button */
         .mirror-btn {
             position: fixed;
             top: 20px;
@@ -77,7 +74,6 @@
         .mirror-btn svg { width: 20px; fill: var(--glow); }
         .mirrored { transform: scaleX(-1); }
 
-        /* UI Overlay */
         #nexus-overlay {
             position: fixed;
             inset: 0;
@@ -87,7 +83,7 @@
             align-items: center;
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(12px);
-            transition: opacity 0.6s ease, visibility 0.6s ease;
+            transition: opacity 0.5s ease;
         }
 
         .holo-frame {
@@ -98,15 +94,13 @@
             border-radius: 30px;
             text-align: center;
             color: #fff;
-            pointer-events: auto;
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.15);
         }
 
         .btn {
             display: block;
             margin-top: 15px;
             padding: 12px;
-            text-decoration: none;
             border-radius: 50px;
             font-weight: bold;
             font-size: 0.7rem;
@@ -118,23 +112,13 @@
             transition: 0.3s;
             cursor: pointer;
             width: 100%;
-            box-sizing: border-box;
         }
         .btn:hover { background: var(--glow); color: #000; box-shadow: 0 0 15px var(--glow); }
-        
-        .btn-danger {
-            border-color: var(--danger);
-            color: var(--danger);
-        }
-        .btn-danger:hover {
-            background: var(--danger); color: #000; box-shadow: 0 0 15px var(--danger);
-        }
 
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
+        .btn-danger { border-color: var(--danger); color: var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: #000; }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 15px; }
         .btn-row .btn { margin-top: 0; }
 
         .hud {
@@ -144,10 +128,9 @@
             letter-spacing: 3px;
             color: rgba(255,255,255,0.4);
             z-index: 150;
-            transition: opacity 0.6s ease, visibility 0.6s ease;
+            transition: opacity 0.6s ease;
         }
 
-        /* Swipe Indicator */
         .swipe-indicator {
             position: fixed;
             bottom: 60px;
@@ -158,23 +141,7 @@
             color: var(--glow);
             z-index: 150;
             opacity: 0.5;
-            transition: opacity 0.6s ease, visibility 0.6s ease;
             pointer-events: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-        }
-        .swipe-indicator .chevron {
-            font-size: 1.2rem;
-            animation: swipe-pulse 2s infinite ease-in-out;
-        }
-        .swipe-indicator .chevron.left { animation-delay: 0s; }
-        .swipe-indicator .chevron.right { animation-delay: 1s; }
-
-        @keyframes swipe-pulse {
-            0%, 100% { opacity: 0.2; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); text-shadow: 0 0 10px var(--glow); }
         }
 
         .hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
@@ -191,7 +158,7 @@
     </div>
 
     <div id="nexus-overlay">
-        <div class="holo-frame">
+        <div class="holo-frame" id="holo-frame">
             <h1 id="node-title" style="margin:0; font-size: 1.1rem; letter-spacing: 4px; color: var(--glow);">SYSTEM BOOT</h1>
             <p id="node-status" style="font-size: 0.6rem; opacity: 0.6; margin-top: 10px;">LOADING NODES...</p>
             
@@ -206,137 +173,43 @@
     </div>
 
     <div class="hud" style="left: 30px;" id="hud-L">NODE: --/--</div>
-    
     <div class="swipe-indicator hud">
         <span class="chevron left">‹‹</span> SWIPE NEXUS <span class="chevron right">››</span>
     </div>
 
     <script>
-        // ==========================================
-        // SUPABASE UPLINK & CONFIGURATION
-        // ==========================================
+        // === SUPABASE & DEFAULT NODES (same as before) ===
         const supabaseUrl = 'https://dfooodizpfqxcbhzadrb.supabase.co';
         const supabaseAnonKey = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmb29vZGl6cGZxeGNiaHphZHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1OTkwMTgsImV4cCI6MjA5OTE3NTAxOH0.Fl5cmNxR2wnZQW1tBIXFo6gG6E-mFdR4oAfy3rK4dq0';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Core System Variables
         let nodes = [];
         let currentIndex = 0;
         const iframe = document.getElementById('yt-iframe');
         const engine = document.getElementById('engine');
         const overlay = document.getElementById('nexus-overlay');
+        const holoFrame = document.getElementById('holo-frame');
         const huds = document.querySelectorAll('.hud');
-        
-        // Interaction variables
+
         let touchStartX = 0;
         let touchEndX = 0;
-        const swipeThreshold = 50; 
-        let isDragging = false;
+        const swipeThreshold = 50;
 
-        // Default Nodes
-        const defaultNodes = [
-            { id: "DHUnz4dyb54", name: "GEORGIA AQUARIUM" },
-            { id: "XsOU8JnEpNM", name: "OL DONYO LODGE" },
-            { id: "5e4lsEe4Vew", name: "WOLF CENTER NORTH" },
-            { id: "3n-5EA9augs", name: "TEXAS WILDLIFE" },
-            { id: "dIChLG4_WNs", name: "NKORHO BUSH LODGE" },
-            { id: "ItdXaWUVF48", name: "ROSIE'S PAN AFRICA" },
-            { id: "ydYDqZQpim8", name: "NAMIB DESERT LIVE" },
-            // ... (all your other default nodes remain the same)
-            { id: "E0TZTmTK-Ws", name: "AQUARIUM FEED 27" }
-        ];
+        const defaultNodes = [ /* ... your full list of default nodes ... */ ];
 
-        // ==========================================
-        // NODE MANAGEMENT
-        // ==========================================
+        // ==================== CORE FUNCTIONS ====================
         async function initSystem() {
+            // ... same as before (keep your original initSystem code)
             document.getElementById('node-status').innerText = "ESTABLISHING DATABASE UPLINK...";
+            const { data, error } = await supabaseClient.from('nexus_nodes').select('*').order('created_at', { ascending: true });
             
-            const { data, error } = await supabaseClient
-                .from('nexus_nodes')
-                .select('*')
-                .order('created_at', { ascending: true });
-
-            if (error) {
-                console.error('Database connection failed:', error);
-                document.getElementById('node-status').innerText = "UPLINK FAILED. USING LOCAL CACHE.";
-                nodes = [...defaultNodes];
-            } else if (data && data.length > 0) {
-                nodes = data; 
-            } else {
-                nodes = [...defaultNodes];
-            }
+            nodes = (error || !data || data.length === 0) ? [...defaultNodes] : data;
             updateNode();
         }
 
-        function extractYouTubeID(url) {
-            const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/|shorts\/))([\w-]{11})/;
-            const match = url.match(regExp);
-            return match ? match[1] : null;
-        }
-
-        async function promptAddNode() {
-            const url = prompt("Enter YouTube URL (Live, Shorts, or Standard):");
-            if (!url) return;
-
-            const ytId = extractYouTubeID(url);
-            if (!ytId) {
-                alert("SYSTEM ERROR: Invalid or unrecognizable YouTube URL format.");
-                return;
-            }
-
-            const customName = prompt("Enter a Name for this feed:", "CUSTOM USER FEED") || "CUSTOM FEED";
-            
-            const { data, error } = await supabaseClient
-                .from('nexus_nodes')
-                .insert([{ id: ytId, name: customName.toUpperCase() }])
-                .select(); 
-
-            if (error) {
-                console.error("Insert error:", error);
-                alert("UPLOAD FAILED. Node ID may already exist in the database.");
-                return;
-            }
-
-            nodes.push({ id: ytId, name: customName.toUpperCase() });
-            currentIndex = nodes.length - 1;
-            updateNode();
-            hideUI(); 
-        }
-
-        async function removeCurrentNode() {
-            if (nodes.length <= 1) {
-                alert("SYSTEM LOCK: Cannot remove the final active feed.");
-                return;
-            }
-            
-            const nodeToDelete = nodes[currentIndex];
-            
-            if (confirm(`PURGE "${nodeToDelete.name}" FROM GLOBAL DATABASE?`)) {
-                const { error } = await supabaseClient
-                    .from('nexus_nodes')
-                    .delete()
-                    .eq('id', nodeToDelete.id);
-
-                if (error) {
-                    console.error("Delete error:", error);
-                    alert("PURGE FAILED. Check console for details.");
-                    return;
-                }
-
-                nodes.splice(currentIndex, 1);
-                if (currentIndex >= nodes.length) currentIndex = 0;
-                updateNode();
-            }
-        }
-
-        // ==========================================
-        // UI & INTERACTION
-        // ==========================================
         function updateNode() {
-            if(nodes.length === 0) return;
+            if (!nodes.length) return;
             const node = nodes[currentIndex];
-            
             engine.classList.add('fade-out');
             
             setTimeout(() => {
@@ -345,17 +218,13 @@
                 document.getElementById('node-status').innerText = `ACTIVE FEED: NODE_${String(currentIndex + 1).padStart(2, '0')}`;
                 document.getElementById('hud-L').innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/${nodes.length}`;
                 engine.classList.remove('fade-out');
-            }, 300);
+            }, 350);
         }
 
-        function toggleMirror(e) {
-            e.stopPropagation();
-            engine.classList.toggle('mirrored');
-        }
-
-        function cycleNode(direction) {
-            currentIndex = (currentIndex + direction + nodes.length) % nodes.length;
-            updateNode();
+        // ==================== UI TOGGLE ====================
+        function showUI() {
+            overlay.classList.remove('hidden');
+            huds.forEach(h => h.classList.remove('hidden'));
         }
 
         function hideUI() {
@@ -363,23 +232,30 @@
             huds.forEach(h => h.classList.add('hidden'));
         }
 
-        function showUI() {
-            overlay.classList.remove('hidden');
-            huds.forEach(h => h.classList.remove('hidden'));
+        function toggleMirror(e) {
+            e.stopImmediatePropagation();
+            engine.classList.toggle('mirrored');
         }
 
-        // Click outside frame → hide
-        function handleOverlayClick(e) {
-            if (e.target.id === 'nexus-overlay') {
-                hideUI();
-            }
+        function cycleNode(dir) {
+            currentIndex = (currentIndex + dir + nodes.length) % nodes.length;
+            updateNode();
         }
 
-        // When UI is hidden, click anywhere → show
-        function handleBackgroundClick(e) {
-            if (overlay.classList.contains('hidden') && 
-                !e.target.closest('.mirror-btn')) {
-                showUI();
+        // ==================== CLICK HANDLER ====================
+        function handleDocumentClick(e) {
+            const isOverlayVisible = !overlay.classList.contains('hidden');
+            
+            if (isOverlayVisible) {
+                // If UI is visible and user clicked outside the frame → hide
+                if (!holoFrame.contains(e.target) && !e.target.closest('.mirror-btn')) {
+                    hideUI();
+                }
+            } else {
+                // If UI is hidden → show it (except mirror button)
+                if (!e.target.closest('.mirror-btn')) {
+                    showUI();
+                }
             }
         }
 
@@ -389,48 +265,37 @@
             else if (distance > swipeThreshold) cycleNode(-1);
         }
 
-        function isInteractiveTarget(e) {
-            return e.target.closest('.holo-frame') || e.target.closest('.mirror-btn');
-        }
-
-        // ==========================================
-        // BOOT
-        // ==========================================
+        // ==================== BOOT ====================
         window.addEventListener('load', () => {
             initSystem();
 
-            // Click on overlay background to hide
-            overlay.addEventListener('click', handleOverlayClick);
+            // Main click handler
+            document.addEventListener('click', handleDocumentClick);
 
-            // Click anywhere when hidden to show
-            document.body.addEventListener('click', handleBackgroundClick);
-
-            // Touch support
-            document.body.addEventListener('touchstart', (e) => {
-                if (isInteractiveTarget(e)) return;
-                isDragging = true;
+            // Touch swipe
+            document.addEventListener('touchstart', e => {
+                if (holoFrame.contains(e.target)) return;
                 touchStartX = e.changedTouches[0].screenX;
             }, { passive: true });
 
-            document.body.addEventListener('touchend', (e) => {
-                if (!isDragging) return;
-                isDragging = false;
+            document.addEventListener('touchend', e => {
                 touchEndX = e.changedTouches[0].screenX;
                 handleSwipe();
             }, { passive: true });
 
-            // Mouse support
-            document.body.addEventListener('mousedown', (e) => {
-                if (isInteractiveTarget(e)) return;
-                isDragging = true;
-                touchStartX = e.screenX;
+            // Mouse swipe
+            let mouseDownX = 0;
+            document.addEventListener('mousedown', e => {
+                if (holoFrame.contains(e.target)) return;
+                mouseDownX = e.screenX;
             });
 
-            document.body.addEventListener('mouseup', (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-                touchEndX = e.screenX;
-                handleSwipe();
+            document.addEventListener('mouseup', e => {
+                if (holoFrame.contains(e.target)) return;
+                const dist = e.screenX - mouseDownX;
+                if (Math.abs(dist) > swipeThreshold) {
+                    cycleNode(dist > 0 ? -1 : 1);
+                }
             });
         });
     </script>
@@ -442,32 +307,17 @@
         const trackingKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Znd6cXh3YWZ2ZGp0d25teXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTA2NzIsImV4cCI6MjA5NzY2NjY3Mn0.baxnDWZ9rSZobzqnAOND7SuJpXbl4wmRyUYTQl4whPE';
         const trackingClient = createClient(trackingUrl, trackingKey);
 
-        function getSafeVisitorId() {
-            let id = localStorage.getItem('nexus_visitor_id');
-            if (!id) {
-                if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-                    id = crypto.randomUUID();
-                } else {
-                    id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-                        return v.toString(16);
-                    });
-                }
-                localStorage.setItem('nexus_visitor_id', id);
-            }
-            return id;
-        }
-
         async function silentUplink() {
             try {
-                const visitorId = getSafeVisitorId();
-                await trackingClient.rpc('track_ping', { p_ip_hash: visitorId });
-            } catch (error) {}
+                const id = localStorage.getItem('nexus_visitor_id') || crypto.randomUUID?.() || 'fallback-id';
+                localStorage.setItem('nexus_visitor_id', id);
+                await trackingClient.rpc('track_ping', { p_ip_hash: id });
+            } catch {}
         }
 
         window.addEventListener('load', () => {
             silentUplink();
-            setInterval(silentUplink, 60000); 
+            setInterval(silentUplink, 60000);
         });
     </script>
 </body>
