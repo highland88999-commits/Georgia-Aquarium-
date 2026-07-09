@@ -21,7 +21,6 @@
             overflow: hidden;
             background-color: #000;
             font-family: 'Courier New', monospace;
-            /* Prevent text highlighting while swiping with mouse */
             user-select: none; 
             -webkit-user-select: none;
         }
@@ -86,10 +85,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(12px);
-            transition: opacity 0.8s, visibility 0.8s;
-            cursor: pointer;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
         }
 
         .holo-frame {
@@ -101,6 +99,7 @@
             text-align: center;
             color: #fff;
             pointer-events: auto;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
         }
 
         .btn {
@@ -121,14 +120,14 @@
             width: 100%;
             box-sizing: border-box;
         }
-        .btn:hover { background: var(--glow); color: #000; }
+        .btn:hover { background: var(--glow); color: #000; box-shadow: 0 0 15px var(--glow); }
         
         .btn-danger {
             border-color: var(--danger);
             color: var(--danger);
         }
         .btn-danger:hover {
-            background: var(--danger); color: #000;
+            background: var(--danger); color: #000; box-shadow: 0 0 15px var(--danger);
         }
 
         .btn-row {
@@ -145,7 +144,7 @@
             letter-spacing: 3px;
             color: rgba(255,255,255,0.4);
             z-index: 150;
-            transition: 0.5s;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
         }
 
         /* Swipe Indicator */
@@ -159,7 +158,7 @@
             color: var(--glow);
             z-index: 150;
             opacity: 0.5;
-            transition: opacity 0.5s;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
             pointer-events: none;
             display: flex;
             justify-content: center;
@@ -178,7 +177,8 @@
             50% { opacity: 1; transform: scale(1.2); text-shadow: 0 0 10px var(--glow); }
         }
 
-        .hidden { opacity: 0 !important; visibility: hidden !important; }
+        /* Hide logic for UI toggle */
+        .hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
     </style>
 </head>
 <body>
@@ -192,7 +192,7 @@
     </div>
 
     <div id="nexus-overlay">
-        <div class="holo-frame" onclick="event.stopPropagation()">
+        <div class="holo-frame">
             <h1 id="node-title" style="margin:0; font-size: 1.1rem; letter-spacing: 4px; color: var(--glow);">SYSTEM BOOT</h1>
             <p id="node-status" style="font-size: 0.6rem; opacity: 0.6; margin-top: 10px;">LOADING NODES...</p>
             
@@ -228,10 +228,10 @@
         const overlay = document.getElementById('nexus-overlay');
         const huds = document.querySelectorAll('.hud');
         
-        // Swipe tracking variables
+        // Interaction / Gesture variables
         let touchStartX = 0;
         let touchEndX = 0;
-        const swipeThreshold = 50; // Minimum distance in pixels to trigger a swipe
+        const swipeThreshold = 50; 
         let isDragging = false;
 
         // Fallback Database
@@ -314,18 +314,18 @@
         }
 
         function extractYouTubeID(url) {
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/|shorts\/))([\w-]{11})/;
             const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+            return match ? match[1] : null;
         }
 
         async function promptAddNode() {
-            const url = prompt("Enter YouTube Live Stream URL:");
+            const url = prompt("Enter YouTube URL (Live, Shorts, or Standard):");
             if (!url) return;
 
             const ytId = extractYouTubeID(url);
             if (!ytId) {
-                alert("SYSTEM ERROR: Invalid YouTube URL.");
+                alert("SYSTEM ERROR: Invalid or unrecognizable YouTube URL format.");
                 return;
             }
 
@@ -342,9 +342,13 @@
                 return;
             }
 
+            // Push to back of index and auto-switch
             nodes.push({ id: ytId, name: customName.toUpperCase() });
             currentIndex = nodes.length - 1;
             updateNode();
+
+            // Auto-hide UI so user seamlessly views the new injection
+            hideUI(); 
         }
 
         async function removeCurrentNode() {
@@ -392,7 +396,7 @@
                 
                 // Fade back in once src is updated
                 engine.classList.remove('fade-out');
-            }, 300); // Wait for the fade out to finish
+            }, 300);
         }
 
         function toggleMirror(e) {
@@ -405,40 +409,50 @@
             updateNode();
         }
 
+        // Visibility toggles
         function toggleUI() {
             overlay.classList.toggle('hidden');
             huds.forEach(h => h.classList.toggle('hidden'));
         }
+        function hideUI() {
+            overlay.classList.add('hidden');
+            huds.forEach(h => h.classList.add('hidden'));
+        }
 
-        // Handle the actual swipe logic calculation
         function handleSwipe() {
             const distance = touchEndX - touchStartX;
             
             if (distance < -swipeThreshold) {
-                // Swiped Left - Next Node
-                cycleNode(1);
+                cycleNode(1); // Swiped Left -> Next
             } else if (distance > swipeThreshold) {
-                // Swiped Right - Previous Node
-                cycleNode(-1);
+                cycleNode(-1); // Swiped Right -> Previous
             } else {
-                // Was a tap/click, not a drag - toggle UI
-                toggleUI();
+                toggleUI(); // Small movement/click -> Toggle Menu
             }
+        }
+
+        // Click validation to prevent accidental UI hiding when clicking buttons inside the overlay
+        function isInteractiveTarget(e) {
+            return e.target.closest('.holo-frame') || e.target.closest('.mirror-btn');
         }
 
         // Touch Listeners (Mobile/Tablets)
         document.body.addEventListener('touchstart', (e) => {
+            if (isInteractiveTarget(e)) return;
+            isDragging = true;
             touchStartX = e.changedTouches[0].screenX;
         }, { passive: true });
 
         document.body.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
             touchEndX = e.changedTouches[0].screenX;
             handleSwipe();
         }, { passive: true });
 
-        // Mouse Listeners (Desktop Drag-to-swipe)
+        // Mouse Listeners (Desktop Drag-to-swipe / click-to-hide)
         document.body.addEventListener('mousedown', (e) => {
-            if(e.target.closest('.holo-frame') || e.target.closest('.mirror-btn')) return; // ignore UI clicks
+            if (isInteractiveTarget(e)) return;
             isDragging = true;
             touchStartX = e.screenX;
         });
