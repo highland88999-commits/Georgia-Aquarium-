@@ -21,7 +21,6 @@
             overflow: hidden;
             background-color: #000;
             font-family: 'Courier New', monospace;
-            /* Prevent text highlighting while swiping with mouse */
             user-select: none; 
             -webkit-user-select: none;
         }
@@ -33,7 +32,7 @@
             width: 100vw; height: 100vh;
             z-index: 1;
             overflow: hidden;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease-in-out;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out;
             opacity: 1;
         }
         
@@ -86,13 +85,14 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(12px);
-            transition: opacity 0.5s, visibility 0.5s;
-            cursor: pointer;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
         }
 
+        /* Injector Node Frame */
         .holo-frame {
+            position: relative;
             width: min(420px, 85vw);
             padding: 40px;
             background: var(--ui-bg);
@@ -101,6 +101,63 @@
             text-align: center;
             color: #fff;
             pointer-events: auto;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.15);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Maximized State */
+        .holo-frame.maximized {
+            width: 95vw;
+            height: 90vh;
+            max-width: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+        }
+
+        .holo-frame.maximized .btn-row {
+            justify-content: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .holo-frame.maximized .btn {
+            max-width: 400px;
+        }
+
+        /* Frame Controls (Top Right) */
+        .frame-controls {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid var(--glow);
+            color: var(--glow);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: var(--glow);
+            color: #000;
+            box-shadow: 0 0 10px var(--glow);
         }
 
         .btn {
@@ -120,16 +177,13 @@
             cursor: pointer;
             width: 100%;
             box-sizing: border-box;
+            margin-left: auto;
+            margin-right: auto;
         }
-        .btn:hover { background: var(--glow); color: #000; }
+        .btn:hover { background: var(--glow); color: #000; box-shadow: 0 0 15px var(--glow); }
         
-        .btn-danger {
-            border-color: var(--danger);
-            color: var(--danger);
-        }
-        .btn-danger:hover {
-            background: var(--danger); color: #000;
-        }
+        .btn-danger { border-color: var(--danger); color: var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: #000; box-shadow: 0 0 15px var(--danger); }
 
         .btn-row {
             display: flex;
@@ -145,7 +199,7 @@
             letter-spacing: 3px;
             color: rgba(255,255,255,0.4);
             z-index: 150;
-            transition: 0.5s;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
         }
 
         /* Swipe Indicator */
@@ -159,7 +213,7 @@
             color: var(--glow);
             z-index: 150;
             opacity: 0.5;
-            transition: opacity 0.5s;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
             pointer-events: none;
             display: flex;
             justify-content: center;
@@ -178,33 +232,8 @@
             50% { opacity: 1; transform: scale(1.2); text-shadow: 0 0 10px var(--glow); }
         }
 
-        .hidden { opacity: 0 !important; visibility: hidden !important; }
-
-        /* Multiverse Tracker CSS Integration */
-        .cyber-footer {
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            width: 100%; 
-            text-align: center; 
-            padding: 12px 0;
-            background: rgba(5, 5, 5, 0.85); 
-            backdrop-filter: blur(4px);
-            border-top: 1px solid rgba(0, 255, 255, 0.15); 
-            z-index: 9999;
-            font-family: 'Courier New', Courier, monospace;
-            pointer-events: none; 
-        }
-        .visit-count {
-            color: #00ffff; 
-            font-size: 0.75rem; 
-            font-weight: bold;
-            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 15px rgba(0, 255, 255, 0.4);
-            letter-spacing: 1.5px; 
-            text-transform: uppercase;
-        }
-        .loading { animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        /* Hide logic for UI toggle */
+        .hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
     </style>
 </head>
 <body>
@@ -218,7 +247,12 @@
     </div>
 
     <div id="nexus-overlay">
-        <div class="holo-frame" onclick="event.stopPropagation()">
+        <div class="holo-frame">
+            
+            <div class="frame-controls">
+                <button class="control-btn" id="max-btn" onclick="toggleMaximize(event)" title="Maximize / Minimize">[ ]</button>
+            </div>
+
             <h1 id="node-title" style="margin:0; font-size: 1.1rem; letter-spacing: 4px; color: var(--glow);">SYSTEM BOOT</h1>
             <p id="node-status" style="font-size: 0.6rem; opacity: 0.6; margin-top: 10px;">LOADING NODES...</p>
             
@@ -238,12 +272,6 @@
         <span class="chevron left">‹‹</span> SWIPE NEXUS <span class="chevron right">››</span>
     </div>
 
-    <footer class="cyber-footer">
-        <div class="visit-count" id="counter-display">
-            UPLINK ESTABLISHING <span class="loading">...</span>
-        </div>
-    </footer>
-
     <script>
         // ==========================================
         // SUPABASE UPLINK & CONFIGURATION
@@ -260,14 +288,11 @@
         const overlay = document.getElementById('nexus-overlay');
         const huds = document.querySelectorAll('.hud');
         
-        // Swipe & Fade tracking variables
+        // Interaction / Gesture variables
         let touchStartX = 0;
         let touchEndX = 0;
         const swipeThreshold = 50; 
         let isDragging = false;
-        let isTransitioning = false; 
-        let fadeTimeout;
-        let safetyTimeout;
 
         // Fallback Database
         const defaultNodes = [
@@ -377,11 +402,13 @@
                 return;
             }
 
+            // Push to back of index and auto-switch
             nodes.push({ id: ytId, name: customName.toUpperCase() });
             currentIndex = nodes.length - 1;
-            
-            toggleUI(); // Auto close the UI so user can see it fade in
             updateNode();
+
+            // Auto-hide UI so user seamlessly views the new injection
+            hideUI(); 
         }
 
         async function removeCurrentNode() {
@@ -406,8 +433,6 @@
 
                 nodes.splice(currentIndex, 1);
                 if (currentIndex >= nodes.length) currentIndex = 0;
-                
-                toggleUI(); // Auto close the UI on success
                 updateNode();
             }
         }
@@ -420,76 +445,88 @@
             if(nodes.length === 0) return;
             const node = nodes[currentIndex];
             
-            // Clear any lingering timeouts from rapid swiping
-            clearTimeout(fadeTimeout);
-            clearTimeout(safetyTimeout);
-            
             // Apply carousel fade effect
             engine.classList.add('fade-out');
             
-            fadeTimeout = setTimeout(() => {
+            setTimeout(() => {
                 iframe.src = `https://www.youtube.com/embed/${node.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${node.id}&rel=0&modestbranding=1`;
                 document.getElementById('node-title').innerText = node.name;
                 document.getElementById('node-status').innerText = `ACTIVE FEED: NODE_${String(currentIndex + 1).padStart(2, '0')}`;
                 document.getElementById('hud-L').innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/${nodes.length}`;
                 
-                // Wait for the new iframe to actually load before fading back in
-                iframe.onload = () => {
-                    engine.classList.remove('fade-out');
-                    isTransitioning = false; // Unlock swipe mechanism
-                };
-
-                // Fallback timeout in case YouTube is stuck spinning
-                safetyTimeout = setTimeout(() => {
-                    engine.classList.remove('fade-out');
-                    isTransitioning = false;
-                }, 1500);
-
-            }, 400); // Wait for the CSS fade-out to finish before changing the source
+                // Fade back in once src is updated
+                engine.classList.remove('fade-out');
+            }, 300);
         }
 
         function toggleMirror(e) {
             e.stopPropagation();
             engine.classList.toggle('mirrored');
         }
+        
+        function toggleMaximize(e) {
+            e.stopPropagation();
+            const frame = document.querySelector('.holo-frame');
+            const btn = document.getElementById('max-btn');
+            
+            frame.classList.toggle('maximized');
+            
+            if (frame.classList.contains('maximized')) {
+                btn.innerText = '[-]';
+            } else {
+                btn.innerText = '[ ]';
+            }
+        }
 
         function cycleNode(direction) {
-            if (isTransitioning) return; // Prevent glitching if user spams swipe
-            isTransitioning = true;
             currentIndex = (currentIndex + direction + nodes.length) % nodes.length;
             updateNode();
         }
 
+        // Visibility toggles
         function toggleUI() {
             overlay.classList.toggle('hidden');
             huds.forEach(h => h.classList.toggle('hidden'));
+        }
+        function hideUI() {
+            overlay.classList.add('hidden');
+            huds.forEach(h => h.classList.add('hidden'));
         }
 
         function handleSwipe() {
             const distance = touchEndX - touchStartX;
             
             if (distance < -swipeThreshold) {
-                cycleNode(1);
+                cycleNode(1); // Swiped Left -> Next
             } else if (distance > swipeThreshold) {
-                cycleNode(-1);
-            } else {
-                toggleUI();
+                cycleNode(-1); // Swiped Right -> Previous
+            } else if (Math.abs(distance) < 10) {
+                toggleUI(); // Tiny movement/click -> Toggle Menu
             }
+        }
+
+        // Click validation to prevent accidental UI hiding when clicking the frame itself
+        function isInteractiveTarget(e) {
+            return e.target.closest('.holo-frame') || e.target.closest('.mirror-btn');
         }
 
         // Touch Listeners (Mobile/Tablets)
         document.body.addEventListener('touchstart', (e) => {
+            if (isInteractiveTarget(e)) return;
+            isDragging = true;
             touchStartX = e.changedTouches[0].screenX;
         }, { passive: true });
 
         document.body.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
             touchEndX = e.changedTouches[0].screenX;
             handleSwipe();
         }, { passive: true });
 
-        // Mouse Listeners (Desktop Drag-to-swipe)
+        // Mouse Listeners (Desktop Drag-to-swipe / click-to-hide)
         document.body.addEventListener('mousedown', (e) => {
-            if(e.target.closest('.holo-frame') || e.target.closest('.mirror-btn')) return; 
+            if (isInteractiveTarget(e)) return;
             isDragging = true;
             touchStartX = e.screenX;
         });
@@ -502,56 +539,48 @@
         });
 
         // ==========================================
-        // MULTIVERSE TRACKER LOGIC
-        // ==========================================
-        
-        async function updateMultiverseCount(isInitialLoad = false) {
-            const displayElement = document.getElementById('counter-display');
-            
-            try {
-                let visitorId = localStorage.getItem('nexus_visitor_id');
-                if (!visitorId) {
-                    visitorId = crypto.randomUUID();
-                    localStorage.setItem('nexus_visitor_id', visitorId);
-                }
-
-                if (isInitialLoad) {
-                    await supabaseClient.rpc('track_ping', { p_ip_hash: visitorId });
-                }
-
-                const { data: globalData } = await supabaseClient
-                    .from('global_stats')
-                    .select('total_pings')
-                    .single();
-
-                const { count: uniqueCount } = await supabaseClient
-                    .from('unique_visitors')
-                    .select('*', { count: 'exact', head: true });
-
-                const total = globalData ? globalData.total_pings : 0;
-                const unique = uniqueCount !== null ? uniqueCount : 0;
-                
-                displayElement.innerHTML = `
-                    UNIQUE TRAVERSALS: [ <span style="color: #ff00ff; text-shadow: 0 0 10px #ff00ff;">${unique}</span> ] 
-                    <span style="opacity: 0.5; margin: 0 10px;">///</span> 
-                    TOTAL PINGS: [ <span style="color: #00ffff;">${total}</span> ]
-                `;
-                displayElement.classList.remove('loading');
-
-            } catch (error) {
-                console.error('Tracker Uplink failed:', error);
-                displayElement.innerHTML = `MULTIVERSE NODE: [ <span style="color: #ff3366;">OFFLINE</span> ]`;
-                displayElement.classList.remove('loading');
-            }
-        }
-
-        // ==========================================
         // BOOT SEQUENCE
         // ==========================================
         window.addEventListener('load', () => {
             initSystem();
-            updateMultiverseCount(true);
-            setInterval(() => updateMultiverseCount(false), 60000);
+        });
+    </script>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        const trackingUrl = 'https://ezfwzqxwafvdjtwnmyrx.supabase.co';
+        const trackingKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Znd6cXh3YWZ2ZGp0d25teXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTA2NzIsImV4cCI6MjA5NzY2NjY3Mn0.baxnDWZ9rSZobzqnAOND7SuJpXbl4wmRyUYTQl4whPE';
+        const trackingClient = createClient(trackingUrl, trackingKey);
+
+        function getSafeVisitorId() {
+            let id = localStorage.getItem('nexus_visitor_id');
+            if (!id) {
+                if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                    id = crypto.randomUUID();
+                } else {
+                    id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                }
+                localStorage.setItem('nexus_visitor_id', id);
+            }
+            return id;
+        }
+
+        async function silentUplink() {
+            try {
+                const visitorId = getSafeVisitorId();
+                await trackingClient.rpc('track_ping', { p_ip_hash: visitorId });
+                console.log("Nexus Console Node: Telemetry uplink successful.");
+            } catch (error) {
+                console.error("Nexus Console Node Telemetry Error:", error);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            silentUplink();
+            setInterval(silentUplink, 60000); 
         });
     </script>
 </body>
