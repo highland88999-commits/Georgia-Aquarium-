@@ -21,6 +21,9 @@
             overflow: hidden;
             background-color: #000;
             font-family: 'Courier New', monospace;
+            /* Prevent text highlighting while swiping with mouse */
+            user-select: none; 
+            -webkit-user-select: none;
         }
 
         /* Video Engine */
@@ -30,7 +33,12 @@
             width: 100vw; height: 100vh;
             z-index: 1;
             overflow: hidden;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out;
+            opacity: 1;
+        }
+        
+        .video-engine.fade-out {
+            opacity: 0;
         }
 
         #yt-iframe {
@@ -69,30 +77,6 @@
         }
         .mirror-btn svg { width: 20px; fill: var(--glow); }
         .mirrored { transform: scaleX(-1); }
-
-        /* Nav Arrows */
-        .nav-arrow {
-            position: fixed;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 200;
-            color: var(--glow);
-            width: 80px; height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 3rem;
-            font-weight: 100;
-            transition: all 0.4s ease;
-            user-select: none;
-            opacity: 0.3;
-            text-shadow: 0 0 10px var(--glow);
-        }
-        .nav-arrow:hover { opacity: 1; transform: translateY(-50%) scale(1.1); }
-        .nav-arrow:active { transform: translateY(-50%) scale(0.9); transition: 0.05s; }
-        .arrow-L { left: 10px; }
-        .arrow-R { right: 10px; }
 
         /* UI Overlay */
         #nexus-overlay {
@@ -164,36 +148,40 @@
             transition: 0.5s;
         }
 
-        .hidden { opacity: 0 !important; visibility: hidden !important; }
+        /* Swipe Indicator */
+        .swipe-indicator {
+            position: fixed;
+            bottom: 60px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.6rem;
+            letter-spacing: 4px;
+            color: var(--glow);
+            z-index: 150;
+            opacity: 0.5;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        .swipe-indicator .chevron {
+            font-size: 1.2rem;
+            animation: swipe-pulse 2s infinite ease-in-out;
+        }
+        .swipe-indicator .chevron.left { animation-delay: 0s; }
+        .swipe-indicator .chevron.right { animation-delay: 1s; }
 
-        /* Multiverse Tracker CSS Integration */
-        .cyber-footer {
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            width: 100%; 
-            text-align: center; 
-            padding: 12px 0;
-            background: rgba(5, 5, 5, 0.85); 
-            backdrop-filter: blur(4px);
-            border-top: 1px solid rgba(0, 255, 255, 0.15); 
-            z-index: 9999;
-            font-family: 'Courier New', Courier, monospace;
-            pointer-events: none; 
+        @keyframes swipe-pulse {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); text-shadow: 0 0 10px var(--glow); }
         }
-        .visit-count {
-            color: #00ffff; 
-            font-size: 0.75rem; 
-            font-weight: bold;
-            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 15px rgba(0, 255, 255, 0.4);
-            letter-spacing: 1.5px; 
-            text-transform: uppercase;
-        }
-        .loading { animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+        .hidden { opacity: 0 !important; visibility: hidden !important; }
     </style>
 </head>
-<body onclick="toggleUI()">
+<body>
 
     <div id="engine" class="video-engine">
         <iframe id="yt-iframe" src="" allow="autoplay; fullscreen"></iframe>
@@ -202,9 +190,6 @@
     <div class="mirror-btn" onclick="toggleMirror(event)" title="Mirror Perspective">
         <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
     </div>
-
-    <div class="nav-arrow arrow-L" onclick="cycleNode(-1)">‹</div>
-    <div class="nav-arrow arrow-R" onclick="cycleNode(1)">›</div>
 
     <div id="nexus-overlay">
         <div class="holo-frame" onclick="event.stopPropagation()">
@@ -222,12 +207,10 @@
     </div>
 
     <div class="hud" style="left: 30px;" id="hud-L">NODE: --/--</div>
-
-    <footer class="cyber-footer">
-        <div class="visit-count" id="counter-display">
-            UPLINK ESTABLISHING <span class="loading">...</span>
-        </div>
-    </footer>
+    
+    <div class="swipe-indicator hud">
+        <span class="chevron left">‹‹</span> SWIPE NEXUS <span class="chevron right">››</span>
+    </div>
 
     <script>
         // ==========================================
@@ -244,8 +227,14 @@
         const engine = document.getElementById('engine');
         const overlay = document.getElementById('nexus-overlay');
         const huds = document.querySelectorAll('.hud');
+        
+        // Swipe tracking variables
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const swipeThreshold = 50; // Minimum distance in pixels to trigger a swipe
+        let isDragging = false;
 
-        // Fallback Database (used if Supabase fails or is entirely empty)
+        // Fallback Database
         const defaultNodes = [
             { id: "DHUnz4dyb54", name: "GEORGIA AQUARIUM" },
             { id: "XsOU8JnEpNM", name: "OL DONYO LODGE" },
@@ -306,7 +295,6 @@
         async function initSystem() {
             document.getElementById('node-status').innerText = "ESTABLISHING DATABASE UPLINK...";
             
-            // Fetch feeds from Supabase
             const { data, error } = await supabaseClient
                 .from('nexus_nodes')
                 .select('*')
@@ -317,9 +305,9 @@
                 document.getElementById('node-status').innerText = "UPLINK FAILED. USING LOCAL CACHE.";
                 nodes = [...defaultNodes];
             } else if (data && data.length > 0) {
-                nodes = data; // Use database nodes if they exist
+                nodes = data; 
             } else {
-                nodes = [...defaultNodes]; // Use local nodes if database is empty
+                nodes = [...defaultNodes];
             }
             
             updateNode();
@@ -343,11 +331,10 @@
 
             const customName = prompt("Enter a Name for this feed:", "CUSTOM USER FEED") || "CUSTOM FEED";
             
-            // Insert new feed into Supabase
             const { data, error } = await supabaseClient
                 .from('nexus_nodes')
                 .insert([{ id: ytId, name: customName.toUpperCase() }])
-                .select(); // Return the inserted data
+                .select(); 
 
             if (error) {
                 console.error("Insert error:", error);
@@ -355,7 +342,6 @@
                 return;
             }
 
-            // Update local array and jump to new feed
             nodes.push({ id: ytId, name: customName.toUpperCase() });
             currentIndex = nodes.length - 1;
             updateNode();
@@ -370,7 +356,6 @@
             const nodeToDelete = nodes[currentIndex];
             
             if (confirm(`PURGE "${nodeToDelete.name}" FROM GLOBAL DATABASE?`)) {
-                // Delete feed from Supabase
                 const { error } = await supabaseClient
                     .from('nexus_nodes')
                     .delete()
@@ -382,7 +367,6 @@
                     return;
                 }
 
-                // Update local array and cycle
                 nodes.splice(currentIndex, 1);
                 if (currentIndex >= nodes.length) currentIndex = 0;
                 updateNode();
@@ -390,16 +374,25 @@
         }
 
         // ==========================================
-        // UI & HARDWARE CONTROLS
+        // UI, HARDWARE CONTROLS & SWIPE LOGIC
         // ==========================================
         
         function updateNode() {
             if(nodes.length === 0) return;
             const node = nodes[currentIndex];
-            iframe.src = `https://www.youtube.com/embed/${node.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${node.id}&rel=0&modestbranding=1`;
-            document.getElementById('node-title').innerText = node.name;
-            document.getElementById('node-status').innerText = `ACTIVE FEED: NODE_${String(currentIndex + 1).padStart(2, '0')}`;
-            document.getElementById('hud-L').innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/${nodes.length}`;
+            
+            // Apply carousel fade effect
+            engine.classList.add('fade-out');
+            
+            setTimeout(() => {
+                iframe.src = `https://www.youtube.com/embed/${node.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${node.id}&rel=0&modestbranding=1`;
+                document.getElementById('node-title').innerText = node.name;
+                document.getElementById('node-status').innerText = `ACTIVE FEED: NODE_${String(currentIndex + 1).padStart(2, '0')}`;
+                document.getElementById('hud-L').innerText = `NODE: ${String(currentIndex + 1).padStart(2, '0')}/${nodes.length}`;
+                
+                // Fade back in once src is updated
+                engine.classList.remove('fade-out');
+            }, 300); // Wait for the fade out to finish
         }
 
         function toggleMirror(e) {
@@ -408,7 +401,6 @@
         }
 
         function cycleNode(direction) {
-            event.stopPropagation();
             currentIndex = (currentIndex + direction + nodes.length) % nodes.length;
             updateNode();
         }
@@ -418,61 +410,89 @@
             huds.forEach(h => h.classList.toggle('hidden'));
         }
 
-        // ==========================================
-        // MULTIVERSE TRACKER LOGIC
-        // ==========================================
-        
-        async function updateMultiverseCount(isInitialLoad = false) {
-            const displayElement = document.getElementById('counter-display');
+        // Handle the actual swipe logic calculation
+        function handleSwipe() {
+            const distance = touchEndX - touchStartX;
             
-            try {
-                // Generate a true, persistent Unique ID for this device
-                let visitorId = localStorage.getItem('nexus_visitor_id');
-                if (!visitorId) {
-                    visitorId = crypto.randomUUID();
-                    localStorage.setItem('nexus_visitor_id', visitorId);
-                }
-
-                // Only fire the tracking RPC on the very first load
-                if (isInitialLoad) {
-                    await supabaseClient.rpc('track_ping', { p_ip_hash: visitorId });
-                }
-
-                // Fetch the updated totals
-                const { data: globalData } = await supabaseClient
-                    .from('global_stats')
-                    .select('total_pings')
-                    .single();
-
-                const { count: uniqueCount } = await supabaseClient
-                    .from('unique_visitors')
-                    .select('*', { count: 'exact', head: true });
-
-                const total = globalData ? globalData.total_pings : 0;
-                const unique = uniqueCount !== null ? uniqueCount : 0;
-                
-                // Formatted display
-                displayElement.innerHTML = `
-                    UNIQUE TRAVERSALS: [ <span style="color: #ff00ff; text-shadow: 0 0 10px #ff00ff;">${unique}</span> ] 
-                    <span style="opacity: 0.5; margin: 0 10px;">///</span> 
-                    TOTAL PINGS: [ <span style="color: #00ffff;">${total}</span> ]
-                `;
-                displayElement.classList.remove('loading');
-
-            } catch (error) {
-                console.error('Tracker Uplink failed:', error);
-                displayElement.innerHTML = `MULTIVERSE NODE: [ <span style="color: #ff3366;">OFFLINE</span> ]`;
-                displayElement.classList.remove('loading');
+            if (distance < -swipeThreshold) {
+                // Swiped Left - Next Node
+                cycleNode(1);
+            } else if (distance > swipeThreshold) {
+                // Swiped Right - Previous Node
+                cycleNode(-1);
+            } else {
+                // Was a tap/click, not a drag - toggle UI
+                toggleUI();
             }
         }
+
+        // Touch Listeners (Mobile/Tablets)
+        document.body.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        document.body.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        // Mouse Listeners (Desktop Drag-to-swipe)
+        document.body.addEventListener('mousedown', (e) => {
+            if(e.target.closest('.holo-frame') || e.target.closest('.mirror-btn')) return; // ignore UI clicks
+            isDragging = true;
+            touchStartX = e.screenX;
+        });
+
+        document.body.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            touchEndX = e.screenX;
+            handleSwipe();
+        });
 
         // ==========================================
         // BOOT SEQUENCE
         // ==========================================
         window.addEventListener('load', () => {
             initSystem();
-            updateMultiverseCount(true); // Register the view
-            setInterval(() => updateMultiverseCount(false), 60000); // Keep counter updated
+        });
+    </script>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        const trackingUrl = 'https://ezfwzqxwafvdjtwnmyrx.supabase.co';
+        const trackingKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Znd6cXh3YWZ2ZGp0d25teXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwOTA2NzIsImV4cCI6MjA5NzY2NjY3Mn0.baxnDWZ9rSZobzqnAOND7SuJpXbl4wmRyUYTQl4whPE';
+        const trackingClient = createClient(trackingUrl, trackingKey);
+
+        function getSafeVisitorId() {
+            let id = localStorage.getItem('nexus_visitor_id');
+            if (!id) {
+                if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                    id = crypto.randomUUID();
+                } else {
+                    id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                }
+                localStorage.setItem('nexus_visitor_id', id);
+            }
+            return id;
+        }
+
+        async function silentUplink() {
+            try {
+                const visitorId = getSafeVisitorId();
+                await trackingClient.rpc('track_ping', { p_ip_hash: visitorId });
+                console.log("Nexus Console Node: Telemetry uplink successful.");
+            } catch (error) {
+                console.error("Nexus Console Node Telemetry Error:", error);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            silentUplink();
+            setInterval(silentUplink, 60000); 
         });
     </script>
 </body>
