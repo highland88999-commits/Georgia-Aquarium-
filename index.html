@@ -1,5 +1,3 @@
-Georgia aqauarium backup
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -203,7 +201,9 @@ Georgia aqauarium backup
             </div>
             
             <a href="mailto:stakeme10000@gmail.com" class="btn">Request Console</a>
-            <a href="https://architect-artemis.vercel.app/" target="_blank" class="btn" style="border-color:var(--gold); color:var(--gold);">Visit Olympus</a>
+            
+            <!-- THE FIX: This button now triggers the Parent Engine's Holographic Modal -->
+            <button class="btn" style="border-color:var(--gold); color:var(--gold);" onclick="openInParentModal('https://architect-artemis.vercel.app/')">Visit Olympus</button>
         </div>
     </div>
 
@@ -215,6 +215,21 @@ Georgia aqauarium backup
     </div>
 
     <script>
+        // ==========================================
+        // PARENT 3D ENGINE COMMUNICATION
+        // ==========================================
+        function openInParentModal(url) {
+            // Check if this app is running inside an iframe (like the 3D wall)
+            if (window.parent !== window) {
+                // Fire message to parent engine (floor1.js) to open the holo modal
+                window.parent.postMessage({ type: 'open-link', url: url }, '*');
+                closeUI(); // Optionally close the overlay menu here so the user can see the 3D animation
+            } else {
+                // Fallback: User visited the console directly in browser, just open a new tab
+                window.open(url, '_blank');
+            }
+        }
+
         // ==========================================
         // SUPABASE UPLINK & CONFIGURATION
         // ==========================================
@@ -328,7 +343,7 @@ Georgia aqauarium backup
         async function promptAddNode() {
             const url = prompt("Enter YouTube URL (Live, Shorts, or Standard):");
             if (!url) {
-                closeUI(); // Fix: Force close if user hits Cancel
+                closeUI(); 
                 return;
             }
 
@@ -386,7 +401,7 @@ Georgia aqauarium backup
                 closeUI();
                 updateNode();
             } else {
-                closeUI(); // Fix: Close menu if user cancels deletion
+                closeUI(); 
             }
         }
 
@@ -431,7 +446,6 @@ Georgia aqauarium backup
             engine.classList.toggle('mirrored');
         }
 
-        // Dedicated functions to open and close the overlay securely
         function closeUI() {
             overlay.classList.add('hidden');
             huds.forEach(h => h.classList.remove('hidden'));
@@ -440,7 +454,7 @@ Georgia aqauarium backup
         function openUI() {
             if (isTransitioning) return;
             if (wasSwipe) { 
-                wasSwipe = false; // Consume flag and prevent opening if user just swiped
+                wasSwipe = false; 
                 return; 
             }
             overlay.classList.remove('hidden');
@@ -468,7 +482,6 @@ Georgia aqauarium backup
             }
         }
 
-        // Touch Listeners (Mobile/Tablets)
         document.body.addEventListener('touchstart', (e) => {
             touchStartX = e.changedTouches[0].screenX;
         }, { passive: true });
@@ -480,7 +493,6 @@ Georgia aqauarium backup
             }
         }, { passive: true });
 
-        // Mouse Listeners (Desktop Drag-to-swipe)
         document.body.addEventListener('mousedown', (e) => {
             if(e.target.closest('.holo-frame') || e.target.closest('.mirror-btn')) return; 
             isDragging = true;
@@ -505,7 +517,6 @@ Georgia aqauarium backup
                     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
                         visitorId = crypto.randomUUID();
                     } else {
-                        // Fallback UUID generator
                         visitorId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                             const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
                             return v.toString(16);
@@ -514,7 +525,6 @@ Georgia aqauarium backup
                     localStorage.setItem('nexus_visitor_id', visitorId);
                 }
 
-                // Call the tracking RPC silently
                 await supabaseClient.rpc('track_ping', { p_ip_hash: visitorId });
                 console.log("Nexus Console Node: Telemetry uplink successful.");
             } catch (error) {
@@ -528,7 +538,7 @@ Georgia aqauarium backup
         window.addEventListener('load', () => {
             initSystem();
             silentUplink();
-            setInterval(silentUplink, 60000); // Re-ping every 60s silently
+            setInterval(silentUplink, 60000); 
         });
     </script>
 </body>
